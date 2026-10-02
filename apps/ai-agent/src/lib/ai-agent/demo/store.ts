@@ -215,6 +215,34 @@ export type DemoNurtureJob = {
   lastError: string | null;
 };
 
+export type DemoLeadDigestHighlight = {
+  leadId: string;
+  name: string;
+  state: string;
+  score: number;
+  source: string;
+  note: string;
+};
+
+export type DemoLeadDigest = {
+  id: string;
+  tenantId: string;
+  /** Calendar date in schedule timezone, YYYY-MM-DD */
+  dateKey: string;
+  timezone: string;
+  timeLocal: string;
+  headline: string;
+  summary: string;
+  leadCount: number;
+  highlights: DemoLeadDigestHighlight[];
+  modelName: string;
+  provider: string;
+  status: "ok" | "error";
+  errorMessage: string | null;
+  triggeredBy: "schedule" | "cron" | "manual";
+  createdAt: string;
+};
+
 export type DemoPresentationView = {
   id: string;
   tenantId: string;
@@ -274,6 +302,15 @@ export type DemoSettings = {
     embeddingUrl: string;
     fallbackToMock: boolean;
   };
+  /** Daily LLM lead digest (default 10:00 Asia/Dubai). */
+  schedule: {
+    enabled: boolean;
+    /** HH:mm local time, default 10:00 */
+    timeLocal: string;
+    timezone: string;
+    /** Last successful/attempted run date key (YYYY-MM-DD in timezone) */
+    lastRunDateKey: string | null;
+  };
   leadSources: Array<{
     id: string;
     name: string;
@@ -311,6 +348,7 @@ export type DemoStore = {
   consents: DemoConsentRecord[];
   idempotency: DemoIdempotencyKey[];
   nurtureJobs: DemoNurtureJob[];
+  leadDigests: DemoLeadDigest[];
   presentationViews: DemoPresentationView[];
   mediaAssets: DemoMediaAsset[];
   spatialScenes: DemoSpatialScene[];
@@ -606,6 +644,7 @@ function seedStore(): DemoStore {
     ],
     idempotency: [],
     nurtureJobs: [],
+    leadDigests: [],
     presentationViews: [],
     mediaAssets: [],
     spatialScenes: [],

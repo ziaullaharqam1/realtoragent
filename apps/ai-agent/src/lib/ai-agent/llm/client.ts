@@ -132,6 +132,12 @@ export class MockLlmClient implements LlmClient {
         toolCalls: [],
         modelName: "mock-llm",
       };
+    } else if (intent === "digest") {
+      result = {
+        content: JSON.stringify(buildMockDigest(lastUser)),
+        toolCalls: [],
+        modelName: "mock-llm",
+      };
     } else {
       result = {
         content:
@@ -252,7 +258,46 @@ function parseScheduling(text: string): Record<string, unknown> {
   return { preferredAt: when.toISOString(), notes: text.slice(0, 200) };
 }
 
+function buildMockDigest(userText: string): {
+  headline: string;
+  summary: string;
+  highlights: Array<{
+    leadId: string;
+    name: string;
+    state: string;
+    score: number;
+    source: string;
+    note: string;
+  }>;
+} {
+  const lines = userText.split("\n").filter((l) => l.trim().startsWith("- "));
+  const highlights = lines.slice(0, 8).map((line) => {
+    const name = line.match(/- ([^|]+)/)?.[1]?.trim() ?? "Lead";
+    const state = line.match(/state=([^\s|]+)/)?.[1] ?? "new";
+    const score = Number(line.match(/score=(\d+)/)?.[1] ?? "50");
+    const source = line.match(/source=([^\s|]+)/)?.[1] ?? "unknown";
+    const id = line.match(/id=([a-f0-9-]+)/i)?.[1] ?? "unknown";
+    return {
+      leadId: id,
+      name,
+      state,
+      score,
+      source,
+      note: score >= 70 ? "High priority — call this morning" : "Review pipeline status",
+    };
+  });
+  return {
+    headline: `Morning pipeline — ${highlights.length || lines.length} leads to review`,
+    summary:
+      "Configured LLM digest (mock): prioritize high-score leads still qualifying, then follow up matched buyers before noon Dubai time.",
+    highlights,
+  };
+}
+
 function inferIntent(lower: string): string {
+  if (lower.includes("lead pipeline") || lower.includes("daily lead") || lower.includes("digest")) {
+    return "digest";
+  }
   if (
     lower.includes("budget") ||
     lower.includes("looking for") ||

@@ -77,6 +77,12 @@ export function defaultSettings(): DemoSettings {
       embeddingUrl: "",
       fallbackToMock: true,
     },
+    schedule: {
+      enabled: true,
+      timeLocal: "10:00",
+      timezone: "Asia/Dubai",
+      lastRunDateKey: null,
+    },
     leadSources: [
       {
         id: "bayut",
@@ -156,6 +162,13 @@ export function defaultSettings(): DemoSettings {
         enabled: true,
         event: "presentation.ready",
       },
+      {
+        id: "daily_leads_digest",
+        name: "Daily leads digest",
+        description: "LLM summary of the lead pipeline at the configured local time (default 10:00)",
+        enabled: true,
+        event: "schedule.daily_leads",
+      },
     ],
     updatedAt: new Date().toISOString(),
   };
@@ -173,6 +186,21 @@ export function getSettings(): DemoSettings {
   if (!llm.baseUrl) llm.baseUrl = "https://api.x.ai/v1";
   if (typeof llm.fallbackToMock !== "boolean") llm.fallbackToMock = true;
   if (typeof llm.enabled !== "boolean") llm.enabled = true;
+  // Backfill daily digest schedule (default 10:00 Asia/Dubai)
+  if (!store.settings.schedule) {
+    store.settings.schedule = {
+      enabled: true,
+      timeLocal: "10:00",
+      timezone: "Asia/Dubai",
+      lastRunDateKey: null,
+    };
+  } else {
+    const s = store.settings.schedule;
+    if (typeof s.enabled !== "boolean") s.enabled = true;
+    if (!s.timeLocal || !/^\d{2}:\d{2}$/.test(s.timeLocal)) s.timeLocal = "10:00";
+    if (!s.timezone) s.timezone = "Asia/Dubai";
+    if (s.lastRunDateKey === undefined) s.lastRunDateKey = null;
+  }
   return store.settings;
 }
 
@@ -186,6 +214,7 @@ export function updateSettings(patch: Partial<DemoSettings>): DemoSettings {
     email: { ...current.email, ...(patch.email ?? {}) },
     n8n: { ...current.n8n, ...(patch.n8n ?? {}) },
     llm: { ...current.llm, ...(patch.llm ?? {}) },
+    schedule: { ...current.schedule, ...(patch.schedule ?? {}) },
     leadSources: patch.leadSources ?? current.leadSources,
     triggers: patch.triggers ?? current.triggers,
     updatedAt: new Date().toISOString(),
