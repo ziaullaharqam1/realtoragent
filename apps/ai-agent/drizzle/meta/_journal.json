@@ -8,6 +8,13 @@
       "when": 1727870000000,
       "tag": "0000_proppilot_m1",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1727873600000,
+      "tag": "0001_m4_m15_extensions",
+      "breakpoints": true
     }
   ]
 }

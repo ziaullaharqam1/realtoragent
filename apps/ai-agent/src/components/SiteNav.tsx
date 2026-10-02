@@ -21,6 +21,7 @@ export function SiteNav() {
         </Link>
         <nav className="pp-nav-links" aria-label="Primary">
           <Link href="/chat">Chat</Link>
+          <Link href="/studio">Studio</Link>
           <Link href="/admin">Admin</Link>
           <Link href="/admin/approvals">Approvals</Link>
         </nav>

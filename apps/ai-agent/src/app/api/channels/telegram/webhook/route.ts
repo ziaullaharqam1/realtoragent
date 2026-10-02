@@ -1,23 +1,55 @@
 import { NextResponse } from "next/server";
 import { getChannelAdapter } from "@/lib/ai-agent/channels";
 import { defaultTenantId } from "@/lib/ai-agent/demo/mode";
+import { processInboundMessage } from "@/lib/ai-agent/orchestrator";
+import { getIdempotentResponse, hashBody, rememberIdempotentResponse } from "@/lib/ai-agent/security/idempotency";
+import { checkRateLimit } from "@/lib/ai-agent/security/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Telegram Bot API webhook stub — always acks. */
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => ({}));
-  const adapter = getChannelAdapter("telegram");
-  const normalized = adapter.normalizeInbound(body, defaultTenantId());
-  return NextResponse.json({
-    ok: true,
-    stub: true,
-    ack: true,
-    normalized: {
-      channel: normalized.channel,
-      externalUserId: normalized.externalUserId,
-      textPreview: normalized.text.slice(0, 120),
-    },
+  const tenantId = defaultTenantId();
+  const rate = checkRateLimit({
+    key: `tg:${tenantId}`,
+    limit: 60,
+    windowMs: 60_000,
   });
+  if (!rate.allowed) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const idemKey =
+    request.headers.get("x-idempotency-key") ?? `tg:${hashBody(body)}`;
+  const cached = getIdempotentResponse(tenantId, "telegram_webhook", idemKey);
+  if (cached) {
+    return NextResponse.json({ ...(cached as object), idempotentReplay: true });
+  }
+
+  const adapter = getChannelAdapter("telegram");
+  const normalized = adapter.normalizeInbound(body, tenantId);
+  const result = await processInboundMessage({
+    tenantId,
+    channel: "telegram",
+    text: normalized.text,
+    externalUserId: normalized.externalUserId,
+  });
+
+  const response = {
+    ok: true,
+    channel: "telegram",
+    conversationId: result.conversationId,
+    agentName: result.agentName,
+    shadowMode: result.shadowMode,
+    approvalId: result.approvalId,
+    replyPreview: result.replyText?.slice(0, 160) ?? null,
+  };
+  rememberIdempotentResponse({
+    tenantId,
+    scope: "telegram_webhook",
+    key: idemKey,
+    response,
+  });
+  return NextResponse.json(response);
 }

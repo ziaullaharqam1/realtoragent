@@ -1,5 +1,5 @@
 import type { LeadGateway, LeadProfile, LeadUpdate } from "../lead-gateway";
-import { getDemoStore, type DemoLead } from "../../demo/store";
+import { getDemoStore, newId, type DemoLead } from "../../demo/store";
 
 function mapLead(row: DemoLead): LeadProfile {
   return {
@@ -80,6 +80,28 @@ export class DemoLeadGateway implements LeadGateway {
       updatedAt: now,
     };
     store.leads.push(lead);
+    if (lead.consentAi) {
+      store.consents.push({
+        id: newId(),
+        tenantId,
+        leadId: lead.id,
+        consentType: "ai",
+        granted: true,
+        source: "lead_create",
+        createdAt: now,
+      });
+    }
+    if (lead.consentMarketing) {
+      store.consents.push({
+        id: newId(),
+        tenantId,
+        leadId: lead.id,
+        consentType: "marketing",
+        granted: true,
+        source: "lead_create",
+        createdAt: now,
+      });
+    }
     return mapLead(lead);
   }
 }

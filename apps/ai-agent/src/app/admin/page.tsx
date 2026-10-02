@@ -4,9 +4,11 @@ import { AppShell } from "@/components/AppShell";
 const links = [
   { href: "/admin/leads", label: "Leads", detail: "Profiles, scores, and sources" },
   { href: "/admin/approvals", label: "Approvals", detail: "Shadow drafts waiting for a broker" },
-  { href: "/admin/conversations", label: "Conversations", detail: "Channel threads and status" },
+  { href: "/admin/conversations", label: "Conversations", detail: "Takeover, release, channel threads" },
   { href: "/admin/analytics", label: "Analytics", detail: "Volume across the demo store" },
   { href: "/admin/flags", label: "Flags", detail: "Kill switch, channels, shadow mode" },
+  { href: "/admin/eval", label: "Eval harness", detail: "Go-live checks for routing and search" },
+  { href: "/studio", label: "Presentation Studio", detail: "Themes, decks, and comparisons" },
   { href: "/chat", label: "Live chat", detail: "Talk to the orchestrator" },
 ];
 

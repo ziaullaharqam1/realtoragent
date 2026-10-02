@@ -32,6 +32,8 @@ export class WebChannelAdapter implements ChannelAdapter {
       destination: message.destination,
       payload: { text: message.text, ...(message.metadata ?? {}) },
       status: "sent",
+      attempts: 1,
+      lastError: null,
       createdAt: new Date().toISOString(),
       sentAt: new Date().toISOString(),
     });

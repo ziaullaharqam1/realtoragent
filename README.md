@@ -41,12 +41,14 @@ npm run dev
 | Path | Purpose |
 | --- | --- |
 | `/chat` | Web chat → orchestrator (qualify / match / book / handoff) |
+| `/studio` | Presentation Studio (themes + compare) |
 | `/admin` | Ops hub |
 | `/admin/leads` | Lead list |
 | `/admin/approvals` | Shadow approval queue |
-| `/admin/conversations` | Conversation list |
+| `/admin/conversations` | Takeover / release |
 | `/admin/analytics` | Demo analytics counters |
 | `/admin/flags` | Kill switch / channel flags |
+| `/admin/eval` | Eval harness |
 | `/presentations/[id]` | Fact-based presentation viewer |
 | `POST /api/chat` | Inbound web message |
 | `GET /api/properties/search` | Hybrid search |

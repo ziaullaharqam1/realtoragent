@@ -38,6 +38,8 @@ export class WhatsAppChannelAdapter implements ChannelAdapter {
       destination: message.destination,
       payload: { text: message.text, stub: true },
       status: "pending",
+      attempts: 0,
+      lastError: null,
       createdAt: new Date().toISOString(),
       sentAt: null,
     });
@@ -76,6 +78,8 @@ export class TelegramChannelAdapter implements ChannelAdapter {
       destination: message.destination,
       payload: { text: message.text, stub: true },
       status: "pending",
+      attempts: 0,
+      lastError: null,
       createdAt: new Date().toISOString(),
       sentAt: null,
     });
@@ -111,6 +115,8 @@ export class EmailChannelAdapter implements ChannelAdapter {
       destination: message.destination,
       payload: { text: message.text, stub: true },
       status: "pending",
+      attempts: 0,
+      lastError: null,
       createdAt: new Date().toISOString(),
       sentAt: null,
     });

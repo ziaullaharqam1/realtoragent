@@ -82,8 +82,41 @@ export type DemoConversation = {
   leadId: string | null;
   channel: string;
   status: string;
+  /** human | ai — takeover puts a broker in control */
+  owner: "ai" | "human";
+  assignedBrokerId: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type DemoChannelIdentity = {
+  id: string;
+  tenantId: string;
+  leadId: string;
+  channel: string;
+  externalUserId: string;
+  verified: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DemoConsentRecord = {
+  id: string;
+  tenantId: string;
+  leadId: string;
+  consentType: "marketing" | "ai" | "whatsapp" | "email";
+  granted: boolean;
+  source: string;
+  createdAt: string;
+};
+
+export type DemoIdempotencyKey = {
+  key: string;
+  tenantId: string;
+  scope: string;
+  responseJson: string;
+  createdAt: string;
+  expiresAt: string;
 };
 
 export type DemoMessage = {
@@ -154,6 +187,8 @@ export type DemoOutboxItem = {
   destination: string;
   payload: Record<string, unknown>;
   status: "pending" | "sent" | "failed";
+  attempts: number;
+  lastError: string | null;
   createdAt: string;
   sentAt: string | null;
 };
@@ -180,6 +215,9 @@ export type DemoStore = {
   audits: DemoAudit[];
   outbox: DemoOutboxItem[];
   n8nEvents: DemoN8nEvent[];
+  identities: DemoChannelIdentity[];
+  consents: DemoConsentRecord[];
+  idempotency: DemoIdempotencyKey[];
 };
 
 const TENANT = "default";
@@ -413,6 +451,8 @@ function seedStore(): DemoStore {
         leadId: LEAD_A,
         channel: "web",
         status: "open",
+        owner: "ai",
+        assignedBrokerId: null,
         createdAt: ts,
         updatedAt: ts,
       },
@@ -435,6 +475,39 @@ function seedStore(): DemoStore {
     audits: [],
     outbox: [],
     n8nEvents: [],
+    identities: [
+      {
+        id: randomUUID(),
+        tenantId: TENANT,
+        leadId: LEAD_A,
+        channel: "web",
+        externalUserId: "web:alex-chen",
+        verified: true,
+        createdAt: ts,
+        updatedAt: ts,
+      },
+    ],
+    consents: [
+      {
+        id: randomUUID(),
+        tenantId: TENANT,
+        leadId: LEAD_A,
+        consentType: "ai",
+        granted: true,
+        source: "seed",
+        createdAt: ts,
+      },
+      {
+        id: randomUUID(),
+        tenantId: TENANT,
+        leadId: LEAD_A,
+        consentType: "marketing",
+        granted: true,
+        source: "seed",
+        createdAt: ts,
+      },
+    ],
+    idempotency: [],
   };
 }
 

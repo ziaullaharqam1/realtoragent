@@ -41,6 +41,8 @@ export async function POST(request: Request) {
     leadId: body.leadId ? String(body.leadId) : null,
     channel: String(body.channel ?? "web"),
     status: "open",
+    owner: "ai" as const,
+    assignedBrokerId: null,
     createdAt: now,
     updatedAt: now,
   };

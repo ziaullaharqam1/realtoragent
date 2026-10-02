@@ -17,6 +17,8 @@ import {
   type PropPilotAgent,
 } from "@/lib/ai-agent/agents";
 import { DemoLeadGateway } from "@/lib/ai-agent/gateways/demo/demo-lead-gateway";
+import { linkChannelIdentity, resolveLeadByIdentity } from "@/lib/ai-agent/channels/identity";
+import { hasConsent } from "@/lib/ai-agent/consent/service";
 
 export type InboundProcessInput = {
   tenantId?: string;
@@ -114,6 +116,8 @@ function ensureConversation(
     leadId: leadId ?? DEMO_IDS.leadA,
     channel,
     status: "open",
+    owner: "ai" as const,
+    assignedBrokerId: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -138,6 +142,9 @@ export async function processInboundMessage(
   });
 
   let leadId = input.leadId ?? null;
+  if (!leadId && input.externalUserId) {
+    leadId = resolveLeadByIdentity(tenantId, channel, input.externalUserId);
+  }
   if (!leadId && channel === "web") {
     leadId = DEMO_IDS.leadA;
   }
@@ -154,7 +161,54 @@ export async function processInboundMessage(
     leadId = created.id;
   }
 
+  if (leadId && input.externalUserId) {
+    linkChannelIdentity({
+      tenantId,
+      leadId,
+      channel,
+      externalUserId: input.externalUserId,
+      verified: channel === "web",
+    });
+  }
+
   const conversation = ensureConversation(tenantId, channel, input.conversationId, leadId);
+
+  // Human takeover: do not run AI agents
+  if (conversation.owner === "human") {
+    const store = getDemoStore();
+    if (text) {
+      store.messages.push({
+        id: newId(),
+        conversationId: conversation.id,
+        tenantId,
+        role: "user",
+        content: text,
+        metadata: { channel, correlationId, owner: "human" },
+        createdAt: new Date().toISOString(),
+      });
+      conversation.updatedAt = new Date().toISOString();
+    }
+    return {
+      allowed: false,
+      shadowMode: gate.shadowMode,
+      reason: "conversation owned by human broker (takeover active)",
+      conversationId: conversation.id,
+      leadId,
+      replyText:
+        "A broker has taken over this conversation. PropPilot AI is paused here until release.",
+    };
+  }
+
+  if (leadId && !hasConsent(tenantId, leadId, "ai") && channel !== "web") {
+    return {
+      allowed: false,
+      shadowMode: gate.shadowMode,
+      reason: "AI consent not granted for this lead",
+      conversationId: conversation.id,
+      leadId,
+      replyText: "Please confirm AI assistance consent before we continue on this channel.",
+    };
+  }
 
   if (!text) {
     return {
