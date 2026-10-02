@@ -1,7 +1,14 @@
 import { and, eq } from "drizzle-orm";
 import type { AppDb } from "@/lib/db/client";
 import { viewings } from "@/lib/db/schema";
-import type { BookViewingInput, ViewingGateway, ViewingRecord } from "../viewing-gateway";
+import type {
+  AvailabilityInput,
+  BookViewingInput,
+  ViewingAvailabilitySlot,
+  ViewingGateway,
+  ViewingRecord,
+} from "../viewing-gateway";
+import { generateAvailabilitySlots } from "@/lib/ai-agent/calendar/availability";
 
 function mapViewing(row: typeof viewings.$inferSelect): ViewingRecord {
   return {
@@ -35,6 +42,27 @@ export class LocalViewingGateway implements ViewingGateway {
       .from(viewings)
       .where(and(eq(viewings.tenantId, tenantId), eq(viewings.leadId, leadId)));
     return rows.map(mapViewing);
+  }
+
+  async getAvailability(
+    tenantId: string,
+    input: AvailabilityInput,
+  ): Promise<ViewingAvailabilitySlot[]> {
+    const rows = await this.db
+      .select()
+      .from(viewings)
+      .where(and(eq(viewings.tenantId, tenantId), eq(viewings.propertyId, input.propertyId)));
+    const bookedStarts = rows
+      .filter((v) => v.status !== "cancelled" && v.scheduledAt)
+      .map((v) => v.scheduledAt!.toISOString());
+    return generateAvailabilitySlots({
+      tenantId,
+      propertyId: input.propertyId,
+      brokerId: input.brokerId ?? null,
+      from: input.from,
+      days: input.days ?? 5,
+      bookedStarts,
+    });
   }
 
   async book(tenantId: string, input: BookViewingInput): Promise<ViewingRecord> {

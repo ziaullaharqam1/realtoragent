@@ -5,9 +5,13 @@ const links = [
   { href: "/admin/leads", label: "Leads", detail: "Profiles, scores, and sources" },
   { href: "/admin/approvals", label: "Approvals", detail: "Shadow drafts waiting for a broker" },
   { href: "/admin/conversations", label: "Conversations", detail: "Takeover, release, channel threads" },
+  { href: "/admin/nurture", label: "Nurture", detail: "Follow-up cadence jobs" },
+  { href: "/admin/n8n", label: "n8n bridge", detail: "Commands the automation plane calls" },
   { href: "/admin/analytics", label: "Analytics", detail: "Volume across the demo store" },
   { href: "/admin/flags", label: "Flags", detail: "Kill switch, channels, shadow mode" },
+  { href: "/admin/access", label: "Access", detail: "Demo RBAC roles until SSO" },
   { href: "/admin/eval", label: "Eval harness", detail: "Go-live checks for routing and search" },
+  { href: "/admin/runbook", label: "Pilot runbook", detail: "Staging checklist before a pilot" },
   { href: "/studio", label: "Presentation Studio", detail: "Themes, decks, and comparisons" },
   { href: "/chat", label: "Live chat", detail: "Talk to the orchestrator" },
 ];

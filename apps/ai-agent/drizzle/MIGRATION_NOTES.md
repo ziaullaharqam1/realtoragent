@@ -1,3 +1,9 @@
+# PropPilot migrations — expand/contract notes
+
+## 0002_m6_m15_deepen
+Additive `nurture_job` + `presentation_view`. Demo mode ignores SQL (in-memory).
+Rollback (dev only): drop those two tables.
+
 # PropPilot M1 migrations — expand/contract notes
 
 | File | Expand | Contract / rollback (dev only) |

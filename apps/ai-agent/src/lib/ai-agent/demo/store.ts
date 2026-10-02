@@ -201,6 +201,29 @@ export type DemoN8nEvent = {
   createdAt: string;
 };
 
+export type DemoNurtureJob = {
+  id: string;
+  tenantId: string;
+  leadId: string;
+  channel: string;
+  destination: string;
+  template: string;
+  status: "pending" | "sent" | "failed" | "skipped";
+  dueAt: string;
+  createdAt: string;
+  sentAt: string | null;
+  lastError: string | null;
+};
+
+export type DemoPresentationView = {
+  id: string;
+  tenantId: string;
+  presentationId: string;
+  leadId: string | null;
+  source: string;
+  createdAt: string;
+};
+
 export type DemoStore = {
   brokers: DemoBroker[];
   leads: DemoLead[];
@@ -218,6 +241,8 @@ export type DemoStore = {
   identities: DemoChannelIdentity[];
   consents: DemoConsentRecord[];
   idempotency: DemoIdempotencyKey[];
+  nurtureJobs: DemoNurtureJob[];
+  presentationViews: DemoPresentationView[];
 };
 
 const TENANT = "default";
@@ -508,6 +533,8 @@ function seedStore(): DemoStore {
       },
     ],
     idempotency: [],
+    nurtureJobs: [],
+    presentationViews: [],
   };
 }
 

@@ -150,7 +150,7 @@ describe("takeover", () => {
 describe("eval harness", () => {
   it("runs the default suite", async () => {
     const report = await runEvalSuite({ reset: true });
-    expect(report.total).toBe(3);
-    expect(report.passed).toBeGreaterThanOrEqual(2);
+    expect(report.total).toBe(8);
+    expect(report.passed).toBeGreaterThanOrEqual(6);
   });
 });

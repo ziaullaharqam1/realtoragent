@@ -49,11 +49,17 @@ npm run dev
 | `/admin/analytics` | Demo analytics counters |
 | `/admin/flags` | Kill switch / channel flags |
 | `/admin/eval` | Eval harness |
-| `/presentations/[id]` | Fact-based presentation viewer |
+| `/admin/nurture` | Nurture cadence jobs |
+| `/admin/n8n` | n8n command runner |
+| `/admin/access` | Demo RBAC roles |
+| `/admin/runbook` | Pilot staging checklist |
+| `/presentations/[id]` | Fact-based presentation viewer + export |
 | `POST /api/chat` | Inbound web message |
 | `GET /api/properties/search` | Hybrid search |
+| `GET /api/viewings/availability` | Broker viewing calendar slots |
+| `GET /api/metrics` | Ops counters |
 | `GET /api/health` | Live / ready / LLM probes (demo-aware) |
-| `POST /api/n8n/commands` | n8n command bridge stub |
+| `POST /api/n8n/commands` | n8n command bridge (executes) |
 
 ## Tests
 

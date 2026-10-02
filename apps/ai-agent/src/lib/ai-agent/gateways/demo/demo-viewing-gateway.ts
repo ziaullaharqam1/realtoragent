@@ -1,5 +1,12 @@
-import type { BookViewingInput, ViewingGateway, ViewingRecord } from "../viewing-gateway";
+import type {
+  AvailabilityInput,
+  BookViewingInput,
+  ViewingAvailabilitySlot,
+  ViewingGateway,
+  ViewingRecord,
+} from "../viewing-gateway";
 import { getDemoStore, newId, type DemoViewing } from "../../demo/store";
+import { generateAvailabilitySlots } from "@/lib/ai-agent/calendar/availability";
 
 function mapViewing(row: DemoViewing): ViewingRecord {
   return {
@@ -25,6 +32,39 @@ export class DemoViewingGateway implements ViewingGateway {
     return getDemoStore()
       .viewings.filter((v) => v.tenantId === tenantId && v.leadId === leadId)
       .map(mapViewing);
+  }
+
+  async getAvailability(
+    tenantId: string,
+    input: AvailabilityInput,
+  ): Promise<ViewingAvailabilitySlot[]> {
+    const store = getDemoStore();
+    const bookedStarts = store.viewings
+      .filter(
+        (v) =>
+          v.tenantId === tenantId &&
+          v.propertyId === input.propertyId &&
+          v.status !== "cancelled" &&
+          v.scheduledAt,
+      )
+      .map((v) => v.scheduledAt!);
+    const broker = input.brokerId
+      ? store.brokers.find((b) => b.id === input.brokerId)
+      : store.brokers.find((b) => b.tenantId === tenantId && b.active);
+    const hours = (broker?.workingHours ?? {}) as {
+      timezone?: string;
+      days?: string[];
+    };
+    return generateAvailabilitySlots({
+      tenantId,
+      propertyId: input.propertyId,
+      brokerId: input.brokerId ?? broker?.id ?? null,
+      from: input.from,
+      days: input.days ?? 5,
+      bookedStarts,
+      workingDays: hours.days,
+      timezone: hours.timezone ?? "Asia/Dubai",
+    });
   }
 
   async book(tenantId: string, input: BookViewingInput): Promise<ViewingRecord> {

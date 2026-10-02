@@ -19,9 +19,26 @@ export type BookViewingInput = {
   notes?: string;
 };
 
+export type ViewingAvailabilitySlot = {
+  start: string;
+  end: string;
+  brokerId: string | null;
+  propertyId: string;
+  timezone: string;
+  available: boolean;
+};
+
+export type AvailabilityInput = {
+  propertyId: string;
+  brokerId?: string;
+  from?: Date;
+  days?: number;
+};
+
 export interface ViewingGateway {
   getById(tenantId: string, viewingId: string): Promise<ViewingRecord | null>;
   listForLead(tenantId: string, leadId: string): Promise<ViewingRecord[]>;
+  getAvailability(tenantId: string, input: AvailabilityInput): Promise<ViewingAvailabilitySlot[]>;
   book(tenantId: string, input: BookViewingInput): Promise<ViewingRecord>;
   reschedule(
     tenantId: string,

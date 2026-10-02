@@ -65,8 +65,18 @@ export function buildComparePresentation(
 
   for (const p of properties.slice(0, 3)) {
     const single = buildPresentationSpec(p);
-    slides.push(...single.slides.filter((s) => s.type !== "cover"));
+    slides.push(...single.slides.filter((s) => s.type !== "cover" && s.type !== "spatial"));
   }
+
+  slides.push({
+    type: "spatial",
+    title: "Compare layouts",
+    caption: properties
+      .map((p) => `${p.title.split("—")[0]?.trim() ?? p.title}: ${p.bedrooms ?? "—"} BR / ${p.areaSqm ?? "—"} sqm`)
+      .join(" · "),
+    layoutHint: "compare",
+    renderer: "placeholder-3d",
+  });
 
   return {
     version: 1,

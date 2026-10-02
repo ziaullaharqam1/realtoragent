@@ -1,5 +1,6 @@
 import type { AgentContext, AgentResult, PropPilotAgent } from "./types";
 import { emitN8nEvent } from "@/lib/ai-agent/n8n/bridge";
+import { scheduleNurtureJob } from "@/lib/ai-agent/nurture/cadence";
 
 export class NurtureAgent implements PropPilotAgent {
   readonly name = "NurtureAgent";
@@ -28,12 +29,22 @@ export class NurtureAgent implements PropPilotAgent {
       });
     }
 
+    const job = ctx.leadId
+      ? scheduleNurtureJob({
+          tenantId: ctx.tenantId,
+          leadId: ctx.leadId,
+          channel: ctx.channel,
+          delayMinutes: 30,
+        })
+      : null;
+
     await emitN8nEvent({
       type: "lead.nurture",
       tenantId: ctx.tenantId,
       payload: {
         leadId: ctx.leadId,
         conversationId: ctx.conversationId,
+        jobId: job?.id ?? null,
         note: ctx.userText.slice(0, 240),
       },
     });
@@ -41,7 +52,8 @@ export class NurtureAgent implements PropPilotAgent {
     return {
       agentName: this.name,
       ok: true,
-      summary: "Nurture cadence noted",
+      summary: job ? `Nurture cadence scheduled (${job.id.slice(0, 8)})` : "Nurture cadence noted",
+      data: { nurtureJobId: job?.id ?? null },
       draftMessages: [
         {
           channel: ctx.channel,

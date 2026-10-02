@@ -23,7 +23,7 @@ export function SiteNav() {
           <Link href="/chat">Chat</Link>
           <Link href="/studio">Studio</Link>
           <Link href="/admin">Admin</Link>
-          <Link href="/admin/approvals">Approvals</Link>
+          <Link href="/admin/runbook">Runbook</Link>
         </nav>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <Link href="/admin" className="pp-btn pp-btn-ghost">

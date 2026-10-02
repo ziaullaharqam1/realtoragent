@@ -21,6 +21,14 @@ export type PresentationSlide =
       type: "narrative";
       title: string;
       body: string;
+    }
+  | {
+      /** M9 spatial / 3D placeholder — facts only, no invented measurements. */
+      type: "spatial";
+      title: string;
+      caption: string;
+      layoutHint: string;
+      renderer: "placeholder-3d";
     };
 
 export type PresentationSpec = {
@@ -110,6 +118,14 @@ export function buildPresentationSpec(property: PropertyDetails): PresentationSp
       body: property.description,
     });
   }
+
+  slides.push({
+    type: "spatial",
+    title: "Layout preview",
+    caption: `${property.propertyType} · ${property.bedrooms ?? "—"} BR · ${property.areaSqm ?? "—"} sqm`,
+    layoutHint: property.propertyType,
+    renderer: "placeholder-3d",
+  });
 
   return {
     version: 1,

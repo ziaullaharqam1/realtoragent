@@ -1,4 +1,10 @@
-import type { BookViewingInput, ViewingGateway, ViewingRecord } from "../viewing-gateway";
+import type {
+  AvailabilityInput,
+  BookViewingInput,
+  ViewingAvailabilitySlot,
+  ViewingGateway,
+  ViewingRecord,
+} from "../viewing-gateway";
 
 export class HttpViewingGateway implements ViewingGateway {
   constructor(private readonly baseUrl: string) {}
@@ -14,6 +20,21 @@ export class HttpViewingGateway implements ViewingGateway {
     const res = await fetch(`${this.baseUrl}/tenants/${tenantId}/leads/${leadId}/viewings`);
     if (!res.ok) throw new Error(`HttpViewingGateway listForLead failed: ${res.status}`);
     return (await res.json()) as ViewingRecord[];
+  }
+
+  async getAvailability(
+    tenantId: string,
+    input: AvailabilityInput,
+  ): Promise<ViewingAvailabilitySlot[]> {
+    const params = new URLSearchParams({ propertyId: input.propertyId });
+    if (input.brokerId) params.set("brokerId", input.brokerId);
+    if (input.from) params.set("from", input.from.toISOString());
+    if (input.days) params.set("days", String(input.days));
+    const res = await fetch(
+      `${this.baseUrl}/tenants/${tenantId}/viewings/availability?${params.toString()}`,
+    );
+    if (!res.ok) throw new Error(`HttpViewingGateway getAvailability failed: ${res.status}`);
+    return (await res.json()) as ViewingAvailabilitySlot[];
   }
 
   async book(tenantId: string, input: BookViewingInput): Promise<ViewingRecord> {

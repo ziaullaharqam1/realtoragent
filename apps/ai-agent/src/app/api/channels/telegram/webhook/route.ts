@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { getChannelAdapter } from "@/lib/ai-agent/channels";
 import { defaultTenantId } from "@/lib/ai-agent/demo/mode";
 import { processInboundMessage } from "@/lib/ai-agent/orchestrator";
-import { getIdempotentResponse, hashBody, rememberIdempotentResponse } from "@/lib/ai-agent/security/idempotency";
+import {
+  getIdempotentResponse,
+  hashBody,
+  rememberIdempotentResponse,
+} from "@/lib/ai-agent/security/idempotency";
 import { checkRateLimit } from "@/lib/ai-agent/security/rate-limit";
+import { verifyTelegramSecret } from "@/lib/ai-agent/channels/signatures";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,9 +24,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
+  if (
+    !verifyTelegramSecret(
+      request.headers.get("x-telegram-bot-api-secret-token"),
+      process.env.TELEGRAM_WEBHOOK_SECRET,
+    )
+  ) {
+    return NextResponse.json({ error: "invalid secret" }, { status: 401 });
+  }
+
   const body = await request.json().catch(() => ({}));
-  const idemKey =
-    request.headers.get("x-idempotency-key") ?? `tg:${hashBody(body)}`;
+  const idemKey = request.headers.get("x-idempotency-key") ?? `tg:${hashBody(body)}`;
   const cached = getIdempotentResponse(tenantId, "telegram_webhook", idemKey);
   if (cached) {
     return NextResponse.json({ ...(cached as object), idempotentReplay: true });

@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { getChannelAdapter } from "@/lib/ai-agent/channels";
 import { defaultTenantId } from "@/lib/ai-agent/demo/mode";
 import { processInboundMessage } from "@/lib/ai-agent/orchestrator";
-import { getIdempotentResponse, hashBody, rememberIdempotentResponse } from "@/lib/ai-agent/security/idempotency";
+import {
+  getIdempotentResponse,
+  hashBody,
+  rememberIdempotentResponse,
+} from "@/lib/ai-agent/security/idempotency";
 import { checkRateLimit } from "@/lib/ai-agent/security/rate-limit";
+import { verifyWhatsAppSignature } from "@/lib/ai-agent/channels/signatures";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,9 +37,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
-  const body = await request.json().catch(() => ({}));
-  const idemKey =
-    request.headers.get("x-idempotency-key") ?? `wa:${hashBody(body)}`;
+  const raw = await request.text();
+  const signature = request.headers.get("x-hub-signature-256");
+  if (!verifyWhatsAppSignature(raw, signature, process.env.WHATSAPP_APP_SECRET)) {
+    return NextResponse.json({ error: "invalid signature" }, { status: 401 });
+  }
+
+  let body: Record<string, unknown> = {};
+  try {
+    body = JSON.parse(raw || "{}") as Record<string, unknown>;
+  } catch {
+    return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
+  }
+
+  const idemKey = request.headers.get("x-idempotency-key") ?? `wa:${hashBody(body)}`;
   const cached = getIdempotentResponse(tenantId, "whatsapp_webhook", idemKey);
   if (cached) {
     return NextResponse.json({ ...(cached as object), idempotentReplay: true });
