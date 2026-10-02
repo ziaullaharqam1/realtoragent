@@ -224,6 +224,66 @@ export type DemoPresentationView = {
   createdAt: string;
 };
 
+export type DemoMediaAsset = {
+  id: string;
+  tenantId: string;
+  filename: string;
+  mimeType: string;
+  /** data URL for demo persistence (no external blob required) */
+  dataUrl: string;
+  widthHint: number;
+  heightHint: number;
+  purpose: "floorplan" | "photo" | "other";
+  createdAt: string;
+};
+
+export type DemoSpatialScene = {
+  id: string;
+  tenantId: string;
+  mediaId: string;
+  mode: "2d" | "3d";
+  title: string;
+  rooms: Array<{ id: string; label: string; x: number; y: number; w: number; h: number }>;
+  camera: { yaw: number; pitch: number; zoom: number };
+  createdAt: string;
+};
+
+export type DemoChannelCreds = {
+  enabled: boolean;
+  verifyToken: string;
+  appSecret: string;
+  accessToken: string;
+  phoneNumberId: string;
+  botToken: string;
+  webhookSecret: string;
+  webhookUrlHint: string;
+};
+
+export type DemoSettings = {
+  whatsapp: DemoChannelCreds;
+  telegram: DemoChannelCreds;
+  email: DemoChannelCreds;
+  n8n: { webhookUrl: string; webhookSecret: string; enabled: boolean };
+  llm: { enabled: boolean; baseUrl: string; apiKey: string; embeddingUrl: string };
+  leadSources: Array<{
+    id: string;
+    name: string;
+    enabled: boolean;
+    apiKey: string;
+    apiSecret: string;
+    portalAccount: string;
+    notes: string;
+  }>;
+  triggers: Array<{
+    id: string;
+    name: string;
+    description: string;
+    enabled: boolean;
+    event: string;
+  }>;
+  updatedAt: string;
+};
+
 export type DemoStore = {
   brokers: DemoBroker[];
   leads: DemoLead[];
@@ -243,6 +303,9 @@ export type DemoStore = {
   idempotency: DemoIdempotencyKey[];
   nurtureJobs: DemoNurtureJob[];
   presentationViews: DemoPresentationView[];
+  mediaAssets: DemoMediaAsset[];
+  spatialScenes: DemoSpatialScene[];
+  settings: DemoSettings | null;
 };
 
 const TENANT = "default";
@@ -535,6 +598,9 @@ function seedStore(): DemoStore {
     idempotency: [],
     nurtureJobs: [],
     presentationViews: [],
+    mediaAssets: [],
+    spatialScenes: [],
+    settings: null,
   };
 }
 

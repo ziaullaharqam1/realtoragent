@@ -48,12 +48,15 @@ npm run dev
 | `/admin/conversations` | Takeover / release |
 | `/admin/analytics` | Demo analytics counters |
 | `/admin/flags` | Kill switch / channel flags |
+| `/login` | Demo login (admin / broker / viewer) |
+| `/admin/settings` | WhatsApp, Telegram, lead credentials, triggers |
 | `/admin/eval` | Eval harness |
 | `/admin/nurture` | Nurture cadence jobs |
 | `/admin/n8n` | n8n command runner |
 | `/admin/access` | Demo RBAC roles |
 | `/admin/runbook` | Pilot staging checklist |
-| `/presentations/[id]` | Fact-based presentation viewer + export |
+| `/studio` | Canva-style studio · 2D/3D upload · PPTX |
+| `/presentations/[id]` | Slide canvas + **Download PowerPoint (.pptx)** |
 | `POST /api/chat` | Inbound web message |
 | `GET /api/properties/search` | Hybrid search |
 | `GET /api/viewings/availability` | Broker viewing calendar slots |

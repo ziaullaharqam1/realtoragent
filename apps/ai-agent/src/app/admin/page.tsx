@@ -2,7 +2,9 @@ import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 
 const links = [
-  { href: "/admin/leads", label: "Leads", detail: "Profiles, scores, and sources" },
+  { href: "/admin/settings", label: "Configuration", detail: "WhatsApp, Telegram, leads credentials, triggers" },
+  { href: "/login", label: "Login", detail: "Sign in as admin, broker, or viewer" },
+  { href: "/admin/leads", label: "Leads", detail: "Profiles, scores, sources — how intake works" },
   { href: "/admin/approvals", label: "Approvals", detail: "Shadow drafts waiting for a broker" },
   { href: "/admin/conversations", label: "Conversations", detail: "Takeover, release, channel threads" },
   { href: "/admin/nurture", label: "Nurture", detail: "Follow-up cadence jobs" },
@@ -12,7 +14,7 @@ const links = [
   { href: "/admin/access", label: "Access", detail: "Demo RBAC roles until SSO" },
   { href: "/admin/eval", label: "Eval harness", detail: "Go-live checks for routing and search" },
   { href: "/admin/runbook", label: "Pilot runbook", detail: "Staging checklist before a pilot" },
-  { href: "/studio", label: "Presentation Studio", detail: "Themes, decks, and comparisons" },
+  { href: "/studio", label: "Presentation Studio", detail: "Canva canvas, 2D/3D upload, PPTX export" },
   { href: "/chat", label: "Live chat", detail: "Talk to the orchestrator" },
 ];
 

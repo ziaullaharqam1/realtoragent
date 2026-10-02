@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDemoStore } from "@/lib/ai-agent/demo/store";
 import { exportPresentation, type ExportFormat } from "@/lib/ai-agent/presentations/export";
+import { buildPptxBuffer } from "@/lib/ai-agent/presentations/pptx";
 import { requirePermission } from "@/lib/ai-agent/auth/rbac";
 
 export const runtime = "nodejs";
@@ -21,12 +22,29 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   const { searchParams } = new URL(request.url);
-  const format = (searchParams.get("format") ?? "md") as ExportFormat;
-  if (!["md", "json", "pptx-json"].includes(format)) {
-    return NextResponse.json({ error: "format must be md|json|pptx-json" }, { status: 400 });
+  const format = (searchParams.get("format") ?? "pptx") as ExportFormat | "pptx";
+  const slug = (presentation.title || "presentation")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .slice(0, 48);
+
+  if (format === "pptx") {
+    const buffer = await buildPptxBuffer(presentation.spec);
+    return new NextResponse(new Uint8Array(buffer), {
+      status: 200,
+      headers: {
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "Content-Disposition": `attachment; filename="${slug || "presentation"}.pptx"`,
+      },
+    });
   }
 
-  const exported = exportPresentation(presentation.spec, format);
+  if (!["md", "json", "pptx-json"].includes(format)) {
+    return NextResponse.json({ error: "format must be pptx|md|json|pptx-json" }, { status: 400 });
+  }
+
+  const exported = exportPresentation(presentation.spec, format as ExportFormat);
   return new NextResponse(exported.body, {
     status: 200,
     headers: {

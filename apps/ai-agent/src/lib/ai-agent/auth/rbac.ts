@@ -1,10 +1,7 @@
-export type PropPilotRole = "admin" | "broker" | "viewer";
+import { principalFromRequest } from "./session";
+import type { PropPilotRole, SessionPrincipal } from "./types";
 
-export type SessionPrincipal = {
-  role: PropPilotRole;
-  userId: string;
-  displayName: string;
-};
+export type { PropPilotRole, SessionPrincipal };
 
 const ROLE_PERMISSIONS: Record<PropPilotRole, readonly string[]> = {
   admin: [
@@ -17,25 +14,36 @@ const ROLE_PERMISSIONS: Record<PropPilotRole, readonly string[]> = {
     "eval:run",
     "metrics:read",
     "export:presentation",
+    "settings:write",
+    "studio:spatial",
   ],
   broker: [
     "admin:read",
     "approvals:decide",
     "takeover",
     "export:presentation",
+    "studio:spatial",
   ],
   viewer: ["admin:read", "export:presentation"],
 };
 
 export function parseRole(raw: string | null | undefined): PropPilotRole {
-  const value = (raw ?? "admin").toLowerCase();
+  const value = (raw ?? "").toLowerCase();
   if (value === "broker" || value === "viewer" || value === "admin") return value;
   return "admin";
 }
 
-/** Resolve demo principal from headers (X-PropPilot-Role / X-PropPilot-User). */
+/**
+ * Resolve principal: session cookie first, then X-PropPilot-Role header (demo),
+ * then DEMO_ADMIN_ROLE / admin default.
+ */
 export function resolvePrincipal(headers: Headers): SessionPrincipal {
-  const role = parseRole(headers.get("x-proppilot-role") ?? process.env.DEMO_ADMIN_ROLE);
+  const fromSession = principalFromRequest(new Request("http://local", { headers }));
+  if (fromSession) return fromSession;
+
+  const role = parseRole(
+    headers.get("x-proppilot-role") ?? process.env.DEMO_ADMIN_ROLE ?? "admin",
+  );
   const userId = headers.get("x-proppilot-user") ?? "demo-user";
   const names: Record<PropPilotRole, string> = {
     admin: "Demo Admin",
