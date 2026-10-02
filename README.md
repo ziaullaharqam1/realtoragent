@@ -1,8 +1,7 @@
 # PropPilot
 
-Isolated AI agent service for real-estate workflows. **Milestone 1** foundation only:
-gateways, feature flags (kill switch + shadow mode), tool-call audit hooks, health probes,
-object-storage client, Postgres/pgvector migrations, Redis, MinIO (local).
+Isolated AI agent service for real-estate workflows. Demo-first slice (M1–M15 foundations)
+runs on Vercel **without** Postgres/Redis/LLM by default.
 
 ## Stack
 
@@ -10,67 +9,71 @@ object-storage client, Postgres/pgvector migrations, Redis, MinIO (local).
 | --- | --- |
 | App | Next.js 15 (App Router) + TypeScript — **`apps/ai-agent`** |
 | Deploy | **Vercel** (production). No AWS deploy targets. |
-| DB | PostgreSQL + pgvector (Compose local; Neon/Supabase/etc. on Vercel) |
-| Cache | Redis local / Upstash on Vercel |
-| Object storage | MinIO local; Vercel Blob / R2 / Supabase Storage later — not AWS S3 deploy |
+| Demo | In-memory store when `DEMO_MODE=true` or `DATABASE_URL` unset |
+| DB | PostgreSQL + pgvector (optional Compose / Neon / Supabase) |
+| Cache | Redis local / Upstash on Vercel (optional in demo) |
+| Object storage | Memory / MinIO local; Vercel Blob later — not AWS S3 |
 | Migrations | Drizzle SQL migrations (`apps/ai-agent/drizzle`) |
 
-## Local run
+## Local run (demo — no Docker)
 
 ```bash
-# 1) Dependencies (requires Docker)
-docker compose -f deploy/docker-compose.yml up -d postgres redis minio minio-init
-
-# 2) App
 cd apps/ai-agent
-cp .env.example .env.local
+cp .env.example .env.local   # DEMO_MODE=true by default
 npm install
+npm run dev
+```
+
+Open [http://127.0.0.1:13447](http://127.0.0.1:13447) → **Chat** or **Admin**.
+
+## Local run (with Postgres)
+
+```bash
+docker compose -f deploy/docker-compose.yml up -d postgres redis minio minio-init
+cd apps/ai-agent
+# set DATABASE_URL, DEMO_MODE=false, GATEWAY_MODE=local in .env.local
 npm run db:migrate
 npm run dev
 ```
 
-Open [http://127.0.0.1:13447](http://127.0.0.1:13447).
+## Product surfaces
 
-Health:
-
-- `GET /api/health/live` — process liveness
-- `GET /api/health/ready` — DB + Redis
-- `GET /api/health/startup` — DB only
-- `GET /api/health` — DB + Redis + LLM (LLM may be `not_configured`)
-- `GET /api/ai/gate` — kill-switch / shadow evaluation
-
-Optional full Compose (builds the Next image):
-
-```bash
-docker compose -f deploy/docker-compose.yml up --build
-```
+| Path | Purpose |
+| --- | --- |
+| `/chat` | Web chat → orchestrator |
+| `/admin` | Leads, shadow approvals, flags, health |
+| `/presentations/[id]` | Fact-based presentation viewer |
+| `POST /api/chat` | Inbound web message |
+| `GET /api/properties/search` | Hybrid search |
+| `GET /api/health` | Live / ready / LLM probes (demo-aware) |
 
 ## Tests
 
 ```bash
 cd apps/ai-agent
 npm test
+npm run build
 ```
-
-Integration tests against Postgres require Compose (or a reachable `DATABASE_URL`). Unit tests run without Docker.
 
 ## Vercel
 
-1. Import the repo in Vercel; set **Root Directory** to `apps/ai-agent`.
-2. Configure env: `DATABASE_URL` (hosted Postgres with pgvector if possible), `REDIS_PROVIDER=upstash` + Upstash REST credentials, `OBJECT_STORAGE_PROVIDER` (e.g. `vercel-blob` when wired), `GATEWAY_MODE=local`, `LLM_ENABLED=false`.
-3. Run migrations against the hosted DB (`npm run db:migrate`) from CI or a one-off job.
-4. Deploy. Do **not** point this project at AWS ECS/EKS/Lambda/RDS/S3.
+1. Root Directory: `apps/ai-agent`
+2. Leave `DATABASE_URL` unset **or** set `DEMO_MODE=true` for zero-infra demo
+3. Optional: Neon/Supabase `DATABASE_URL`, Upstash Redis, `LLM_ENABLED=true` + OpenAI-compatible keys
+4. No AWS ECS/EKS/Lambda/RDS/S3
 
 ## Layout
 
 ```text
-apps/ai-agent/          Next.js PropPilot service (Vercel)
-  src/lib/ai-agent/     Kill-switch boundary, gateways, flags, audit, storage, health
-  drizzle/              Additive SQL migrations + notes
-deploy/                 Local Docker Compose only
-.github/workflows/ci.yml
+apps/ai-agent/src/lib/ai-agent/
+  demo/           In-memory seeded store
+  agents/         Qualification, Matching, Scheduling, Presentation, Handoff, Nurture
+  orchestrator/   processInboundMessage + shadow/outbox
+  llm/            Mock + OpenAI-compatible client
+  embeddings/     Deterministic mock vectors + refresh
+  search/         Hybrid hard filters + cosine
+  channels/       Web + WhatsApp/Telegram/Email stubs
+  shadow/         Approvals
+  n8n/            Signed webhook bridge stubs
+  presentations/  PresentationSpec builder
 ```
-
-## Out of scope (later milestones)
-
-Agents, LLM tool loop, channels, embeddings search, presentations, n8n.

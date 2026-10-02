@@ -155,7 +155,24 @@ export async function liveness(): Promise<HealthReport> {
   };
 }
 
+function isDemoModeEnv(): boolean {
+  if ((process.env.DEMO_MODE ?? "").toLowerCase() === "true") return true;
+  if (!process.env.DATABASE_URL) return true;
+  return false;
+}
+
 export async function readiness(): Promise<HealthReport> {
+  if (isDemoModeEnv()) {
+    return {
+      status: "ok",
+      checks: [
+        { name: "demo", status: "up", detail: "in-memory demo mode" },
+        { name: "db", status: "not_configured", detail: "optional in demo mode" },
+        { name: "redis", status: "not_configured", detail: "optional in demo mode" },
+      ],
+      timestamp: new Date().toISOString(),
+    };
+  }
   const checks = await Promise.all([checkDatabase(), checkRedis()]);
   return {
     status: aggregateStatus(checks.map((c) => (c.status === "not_configured" ? { ...c, status: "down" as const } : c))),
@@ -165,6 +182,13 @@ export async function readiness(): Promise<HealthReport> {
 }
 
 export async function startup(): Promise<HealthReport> {
+  if (isDemoModeEnv()) {
+    return {
+      status: "ok",
+      checks: [{ name: "demo", status: "up", detail: "in-memory demo mode" }],
+      timestamp: new Date().toISOString(),
+    };
+  }
   const db = await checkDatabase();
   const normalized =
     db.status === "not_configured" ? { ...db, status: "down" as const } : db;
@@ -176,6 +200,19 @@ export async function startup(): Promise<HealthReport> {
 }
 
 export async function fullHealth(): Promise<HealthReport> {
+  if (isDemoModeEnv()) {
+    const llm = await checkLlm();
+    return {
+      status: llm.status === "up" ? "ok" : "degraded",
+      checks: [
+        { name: "demo", status: "up", detail: "in-memory demo mode" },
+        { name: "db", status: "not_configured", detail: "optional in demo mode" },
+        { name: "redis", status: "not_configured", detail: "optional in demo mode" },
+        llm,
+      ],
+      timestamp: new Date().toISOString(),
+    };
+  }
   const checks = await Promise.all([checkDatabase(), checkRedis(), checkLlm()]);
   // LLM not_configured does not fail overall readiness semantics in full view —
   // report degraded when LLM missing/disabled, down only for db/redis hard fail.

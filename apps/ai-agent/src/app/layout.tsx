@@ -3,7 +3,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "PropPilot",
-  description: "PropPilot AI agent service — Milestone 1 foundation",
+  description:
+    "PropPilot AI agent — qualify leads, match listings, book viewings, and hand off to brokers.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

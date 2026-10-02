@@ -1,4 +1,5 @@
-import { getDb } from "@/lib/db/client";
+import { getDatabaseUrl, getDb } from "@/lib/db/client";
+import { isDemoMode } from "@/lib/ai-agent/demo/mode";
 import type { AgentDirectory } from "./agent-directory";
 import type { LeadGateway } from "./lead-gateway";
 import type { PropertyGateway } from "./property-gateway";
@@ -11,14 +12,28 @@ import { LocalAgentDirectory } from "./local/local-agent-directory";
 import { LocalLeadGateway } from "./local/local-lead-gateway";
 import { LocalPropertyGateway } from "./local/local-property-gateway";
 import { LocalViewingGateway } from "./local/local-viewing-gateway";
+import { DemoAgentDirectory } from "./demo/demo-agent-directory";
+import { DemoLeadGateway } from "./demo/demo-lead-gateway";
+import { DemoPropertyGateway } from "./demo/demo-property-gateway";
+import { DemoViewingGateway } from "./demo/demo-viewing-gateway";
 
 export type GatewayBundle = {
   leads: LeadGateway;
   properties: PropertyGateway;
   viewings: ViewingGateway;
   agents: AgentDirectory;
-  mode: "local" | "http";
+  mode: "local" | "http" | "demo";
 };
+
+export function createDemoGateways(): GatewayBundle {
+  return {
+    mode: "demo",
+    leads: new DemoLeadGateway(),
+    properties: new DemoPropertyGateway(),
+    viewings: new DemoViewingGateway(),
+    agents: new DemoAgentDirectory(),
+  };
+}
 
 export function createGateways(): GatewayBundle {
   const mode = (process.env.GATEWAY_MODE ?? "local").toLowerCase();
@@ -35,12 +50,19 @@ export function createGateways(): GatewayBundle {
       agents: new HttpAgentDirectory(baseUrl),
     };
   }
-  const db = getDb();
-  return {
-    mode: "local",
-    leads: new LocalLeadGateway(db),
-    properties: new LocalPropertyGateway(db),
-    viewings: new LocalViewingGateway(db),
-    agents: new LocalAgentDirectory(db),
-  };
+  if (mode === "demo" || isDemoMode() || !getDatabaseUrl()) {
+    return createDemoGateways();
+  }
+  try {
+    const db = getDb();
+    return {
+      mode: "local",
+      leads: new LocalLeadGateway(db),
+      properties: new LocalPropertyGateway(db),
+      viewings: new LocalViewingGateway(db),
+      agents: new LocalAgentDirectory(db),
+    };
+  } catch {
+    return createDemoGateways();
+  }
 }
