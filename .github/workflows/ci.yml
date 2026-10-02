@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "cursor/**"]
+  pull_request:
+
+jobs:
+  ai-agent:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ai-agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/ai-agent/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: postgresql://proppilot:proppilot@127.0.0.1:5432/proppilot
+          REDIS_URL: redis://127.0.0.1:6379
+          OBJECT_STORAGE_PROVIDER: memory
+          LLM_ENABLED: "false"
+
+  # Production deploy is Vercel (Git integration / vercel CLI), not AWS.
+  # Add a Vercel deploy job here when project tokens are available.
