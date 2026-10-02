@@ -8,11 +8,13 @@ import {
   runDailyLeadsDigest,
   shouldRunDailyDigest,
 } from "@/lib/ai-agent/schedule/daily-leads";
+import { startDailyLeadsTicker } from "@/lib/ai-agent/schedule/ticker";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  startDailyLeadsTicker();
   const auth = requirePermission(request.headers, "admin:read");
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });

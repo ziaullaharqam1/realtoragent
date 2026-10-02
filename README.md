@@ -73,7 +73,7 @@ npm run dev
 A scheduled task runs **once per day** at a configurable local time (default **10:00** `Asia/Dubai`) using the **configured LLM** (Grok by default). It summarizes the lead pipeline and stores a digest at `/admin/digests`.
 
 - Configure time/timezone under **Admin → Configuration → Daily lead digest schedule**
-- Local/dev: in-process minute ticker (`src/instrumentation.ts`)
+- Local/dev: in-process minute ticker (starts on `/api/health`, digests, or cron hit)
 - Vercel: hourly cron → `/api/cron/daily-leads` (set optional `CRON_SECRET`)
 - Manual: **Run digest now** on `/admin/digests`
 

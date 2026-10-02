@@ -1,5 +1,8 @@
-import { randomUUID } from "node:crypto";
 import { defaultTenantId } from "./mode";
+
+function uuid(): string {
+  return globalThis.crypto.randomUUID();
+}
 
 export type DemoBroker = {
   id: string;
@@ -519,7 +522,7 @@ function seedStore(): DemoStore {
     viewings: [],
     flags: [
       {
-        id: randomUUID(),
+        id: uuid(),
         tenantId: TENANT,
         flagKey: "ai.kill_switch",
         scopeType: "global",
@@ -529,7 +532,7 @@ function seedStore(): DemoStore {
         description: "When enabled, short-circuits all AI orchestration",
       },
       {
-        id: randomUUID(),
+        id: uuid(),
         tenantId: TENANT,
         flagKey: "ai.orchestrator",
         scopeType: "global",
@@ -539,7 +542,7 @@ function seedStore(): DemoStore {
         description: "Master AI orchestrator — enabled for demo",
       },
       {
-        id: randomUUID(),
+        id: uuid(),
         tenantId: TENANT,
         flagKey: "channel.web",
         scopeType: "global",
@@ -549,7 +552,7 @@ function seedStore(): DemoStore {
         description: "Web chat channel",
       },
       {
-        id: randomUUID(),
+        id: uuid(),
         tenantId: TENANT,
         flagKey: "channel.whatsapp",
         scopeType: "global",
@@ -559,7 +562,7 @@ function seedStore(): DemoStore {
         description: "WhatsApp channel stub",
       },
       {
-        id: randomUUID(),
+        id: uuid(),
         tenantId: TENANT,
         flagKey: "channel.telegram",
         scopeType: "global",
@@ -569,7 +572,7 @@ function seedStore(): DemoStore {
         description: "Telegram channel stub",
       },
       {
-        id: randomUUID(),
+        id: uuid(),
         tenantId: TENANT,
         flagKey: "channel.email",
         scopeType: "global",
@@ -594,7 +597,7 @@ function seedStore(): DemoStore {
     ],
     messages: [
       {
-        id: randomUUID(),
+        id: uuid(),
         conversationId: CONV_A,
         tenantId: TENANT,
         role: "assistant",
@@ -612,7 +615,7 @@ function seedStore(): DemoStore {
     n8nEvents: [],
     identities: [
       {
-        id: randomUUID(),
+        id: uuid(),
         tenantId: TENANT,
         leadId: LEAD_A,
         channel: "web",
@@ -624,7 +627,7 @@ function seedStore(): DemoStore {
     ],
     consents: [
       {
-        id: randomUUID(),
+        id: uuid(),
         tenantId: TENANT,
         leadId: LEAD_A,
         consentType: "ai",
@@ -633,7 +636,7 @@ function seedStore(): DemoStore {
         createdAt: ts,
       },
       {
-        id: randomUUID(),
+        id: uuid(),
         tenantId: TENANT,
         leadId: LEAD_A,
         consentType: "marketing",
@@ -682,7 +685,7 @@ export const DEMO_IDS = {
 } as const;
 
 export function newId(): string {
-  return randomUUID();
+  return uuid();
 }
 
 export function tenantOrDefault(tenantId?: string | null): string {
