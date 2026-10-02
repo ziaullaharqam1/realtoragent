@@ -5,8 +5,20 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import type { DemoSettings } from "@/lib/ai-agent/demo/store";
 
+type Provider = { id: string; label: string; detail: string; baseUrl: string; model: string };
+type LlmResolved = {
+  provider: string;
+  model: string;
+  baseUrl: string;
+  enabled: boolean;
+  hasApiKey: boolean;
+  fallbackToMock: boolean;
+};
+
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<DemoSettings | null>(null);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [llmResolved, setLlmResolved] = useState<LlmResolved | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -18,6 +30,8 @@ export default function AdminSettingsPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "failed");
         setSettings(data.settings);
+        setProviders(data.llmProviders ?? []);
+        setLlmResolved(data.llmResolved ?? null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "failed");
       }
@@ -217,17 +231,80 @@ export default function AdminSettingsPage() {
             checked={settings.llm.enabled}
             onChange={(v) => setSettings({ ...settings, llm: { ...settings.llm, enabled: v } })}
           />
+          <label style={{ display: "grid", gap: "0.3rem", fontSize: "0.82rem", color: "var(--muted)" }}>
+            Provider (default: Grok)
+            <select
+              value={settings.llm.provider ?? "grok"}
+              onChange={(e) => {
+                const id = e.target.value;
+                const preset = providers.find((p) => p.id === id);
+                setSettings({
+                  ...settings,
+                  llm: {
+                    ...settings.llm,
+                    provider: id,
+                    baseUrl: preset?.baseUrl || settings.llm.baseUrl,
+                    model: preset?.model || settings.llm.model,
+                  },
+                });
+              }}
+              style={{
+                padding: "0.55rem 0.7rem",
+                borderRadius: 10,
+                border: "1px solid var(--line)",
+                background: "var(--bg)",
+                color: "var(--ink)",
+              }}
+            >
+              {(providers.length
+                ? providers
+                : [
+                    { id: "grok", label: "Grok (xAI — default / free credits)", detail: "", baseUrl: "", model: "" },
+                  ]
+              ).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Field
+            label="Model"
+            value={settings.llm.model ?? "grok-3-mini"}
+            onChange={(v) => setSettings({ ...settings, llm: { ...settings.llm, model: v } })}
+          />
           <Field
             label="LLM base URL"
             value={settings.llm.baseUrl}
             onChange={(v) => setSettings({ ...settings, llm: { ...settings.llm, baseUrl: v } })}
           />
           <Field
-            label="LLM API key"
+            label="API key (XAI_API_KEY for Grok)"
             value={settings.llm.apiKey}
             onChange={(v) => setSettings({ ...settings, llm: { ...settings.llm, apiKey: v } })}
           />
+          <Toggle
+            label="Fallback to mock if Grok/API fails"
+            checked={settings.llm.fallbackToMock ?? true}
+            onChange={(v) =>
+              setSettings({ ...settings, llm: { ...settings.llm, fallbackToMock: v } })
+            }
+          />
         </div>
+        {llmResolved ? (
+          <p style={{ margin: "1rem 0 0", fontSize: "0.88rem", color: "var(--muted)" }}>
+            Active: <strong>{llmResolved.provider}</strong> · {llmResolved.model} · key{" "}
+            {llmResolved.hasApiKey ? "present" : "missing (using mock until key is set)"}
+            {llmResolved.fallbackToMock ? " · mock failover on" : ""}
+          </p>
+        ) : null}
+        <p style={{ margin: "0.65rem 0 0", fontSize: "0.85rem", color: "var(--muted)" }}>
+          Get a free-credit Grok key at{" "}
+          <a href="https://console.x.ai" target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>
+            console.x.ai
+          </a>
+          . Or pick OpenRouter free router for zero-cost models.
+        </p>
       </section>
 
       <section className="pp-panel" style={{ marginTop: "1rem", padding: "1.25rem" }}>

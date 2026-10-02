@@ -10,6 +10,7 @@ runs on Vercel **without** Postgres/Redis/LLM by default.
 | App | Next.js 15 (App Router) + TypeScript — **`apps/ai-agent`** |
 | Deploy | **Vercel** (production). No AWS deploy targets. |
 | Demo | In-memory store when `DEMO_MODE=true` or `DATABASE_URL` unset |
+| LLM | **Grok (xAI)** by default — `LLM_PROVIDER=grok`, set `XAI_API_KEY`; mock failover until key is set. Configurable in `/admin/settings`. |
 | DB | PostgreSQL + pgvector (optional Compose / Neon / Supabase) |
 | Cache | Redis local / Upstash on Vercel (optional in demo) |
 | Object storage | Memory / MinIO local; Vercel Blob later — not AWS S3 |
@@ -76,8 +77,9 @@ npm run build
 
 1. Root Directory: `apps/ai-agent`
 2. Leave `DATABASE_URL` unset **or** set `DEMO_MODE=true` for zero-infra demo
-3. Optional: Neon/Supabase `DATABASE_URL`, Upstash Redis, `LLM_ENABLED=true` + OpenAI-compatible keys
-4. No AWS ECS/EKS/Lambda/RDS/S3
+3. Optional: Neon/Supabase `DATABASE_URL`, Upstash Redis
+4. LLM: set `XAI_API_KEY` (Grok default) or change provider in Admin → Configuration
+5. No AWS ECS/EKS/Lambda/RDS/S3
 
 ## Layout
 

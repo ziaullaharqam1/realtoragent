@@ -109,30 +109,53 @@ export async function checkRedis(): Promise<ComponentProbe> {
  */
 export async function checkLlm(): Promise<ComponentProbe> {
   const started = Date.now();
-  const enabled = (process.env.LLM_ENABLED ?? "false").toLowerCase() === "true";
-  const baseUrl = process.env.LLM_BASE_URL;
-  if (!enabled || !baseUrl) {
+  const { resolveLlmConfig } = await import("@/lib/ai-agent/llm/providers");
+  let settingsLlm = null;
+  try {
+    const { getSettings } = await import("@/lib/ai-agent/config/settings");
+    settingsLlm = getSettings().llm;
+  } catch {
+    settingsLlm = null;
+  }
+  const config = resolveLlmConfig(settingsLlm);
+
+  if (config.provider === "mock") {
+    return {
+      name: "llm",
+      status: "up",
+      latencyMs: Date.now() - started,
+      detail: "mock provider",
+    };
+  }
+  if (!config.enabled) {
     return {
       name: "llm",
       status: "not_configured",
-      detail: enabled ? "LLM_BASE_URL missing" : "LLM_ENABLED=false",
+      detail: "LLM disabled in settings",
+    };
+  }
+  if (!config.apiKey || !config.baseUrl) {
+    return {
+      name: "llm",
+      status: "not_configured",
+      detail: `${config.provider} selected (default Grok) — set XAI_API_KEY or Config → LLM API key`,
     };
   }
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(baseUrl, { method: "GET", signal: controller.signal });
+    const res = await fetch(config.baseUrl, { method: "GET", signal: controller.signal });
     clearTimeout(timer);
     return {
       name: "llm",
       status: res.ok || res.status < 500 ? "up" : "degraded",
       latencyMs: Date.now() - started,
-      detail: `HTTP ${res.status}`,
+      detail: `${config.provider}:${config.model} HTTP ${res.status}`,
     };
   } catch (err) {
     return {
       name: "llm",
-      status: "down",
+      status: config.fallbackToMock ? "degraded" : "down",
       latencyMs: Date.now() - started,
       detail: err instanceof Error ? err.message : "llm unreachable",
     };

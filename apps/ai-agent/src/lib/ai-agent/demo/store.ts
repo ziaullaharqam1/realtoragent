@@ -264,7 +264,16 @@ export type DemoSettings = {
   telegram: DemoChannelCreds;
   email: DemoChannelCreds;
   n8n: { webhookUrl: string; webhookSecret: string; enabled: boolean };
-  llm: { enabled: boolean; baseUrl: string; apiKey: string; embeddingUrl: string };
+  llm: {
+    enabled: boolean;
+    /** grok | openrouter-free | openai | custom | mock */
+    provider: string;
+    model: string;
+    baseUrl: string;
+    apiKey: string;
+    embeddingUrl: string;
+    fallbackToMock: boolean;
+  };
   leadSources: Array<{
     id: string;
     name: string;

@@ -69,10 +69,13 @@ export function defaultSettings(): DemoSettings {
       enabled: false,
     },
     llm: {
-      enabled: false,
-      baseUrl: "",
+      enabled: true,
+      provider: "grok",
+      model: "grok-3-mini",
+      baseUrl: "https://api.x.ai/v1",
       apiKey: "",
       embeddingUrl: "",
+      fallbackToMock: true,
     },
     leadSources: [
       {
@@ -163,6 +166,13 @@ export function getSettings(): DemoSettings {
   if (!store.settings) {
     store.settings = defaultSettings();
   }
+  // Backfill LLM fields for stores created before provider support
+  const llm = store.settings.llm as DemoSettings["llm"] & Record<string, unknown>;
+  if (!llm.provider) llm.provider = "grok";
+  if (!llm.model) llm.model = "grok-3-mini";
+  if (!llm.baseUrl) llm.baseUrl = "https://api.x.ai/v1";
+  if (typeof llm.fallbackToMock !== "boolean") llm.fallbackToMock = true;
+  if (typeof llm.enabled !== "boolean") llm.enabled = true;
   return store.settings;
 }
 
@@ -243,4 +253,22 @@ export function applySettingsToEnvHints(settings: DemoSettings): void {
   if (settings.n8n.webhookUrl && !process.env.N8N_WEBHOOK_URL) {
     process.env.N8N_WEBHOOK_URL = settings.n8n.webhookUrl;
   }
+  // LLM — settings win when set (demo admin configuration)
+  if (settings.llm.provider) {
+    process.env.LLM_PROVIDER = settings.llm.provider;
+  }
+  if (settings.llm.model) {
+    process.env.LLM_MODEL = settings.llm.model;
+  }
+  if (settings.llm.baseUrl) {
+    process.env.LLM_BASE_URL = settings.llm.baseUrl;
+  }
+  if (settings.llm.apiKey && !settings.llm.apiKey.includes("*")) {
+    process.env.LLM_API_KEY = settings.llm.apiKey;
+    if (settings.llm.provider === "grok") {
+      process.env.XAI_API_KEY = settings.llm.apiKey;
+    }
+  }
+  process.env.LLM_ENABLED = settings.llm.enabled ? "true" : "false";
+  process.env.LLM_FALLBACK_MOCK = settings.llm.fallbackToMock ? "true" : "false";
 }

@@ -1,5 +1,7 @@
 import { toolCallAuditService } from "@/lib/ai-agent/audit/service";
 import { maskPiiDeep } from "@/lib/ai-agent/audit/pii";
+import { getSettings } from "@/lib/ai-agent/config/settings";
+import { resolveLlmConfig } from "@/lib/ai-agent/llm/providers";
 
 export type LlmMessage = {
   role: "system" | "user" | "assistant" | "tool";
@@ -281,19 +283,26 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
   constructor(
     private readonly baseUrl: string,
     private readonly apiKey: string,
-    private readonly model = process.env.LLM_MODEL ?? "gpt-4o-mini",
+    private readonly model: string,
+    private readonly providerLabel = "openai-compatible",
   ) {}
 
   async complete(req: LlmCompletionRequest): Promise<LlmCompletionResult> {
     const started = Date.now();
     const url = `${this.baseUrl.replace(/\/$/, "")}/chat/completions`;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.apiKey}`,
+    };
+    // OpenRouter recommends these headers
+    if (this.baseUrl.includes("openrouter.ai")) {
+      headers["HTTP-Referer"] = process.env.OPENROUTER_SITE_URL ?? "https://proppilot.demo";
+      headers["X-Title"] = process.env.OPENROUTER_APP_NAME ?? "PropPilot";
+    }
     try {
       const res = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
-        },
+        headers,
         body: JSON.stringify({
           model: this.model,
           messages: req.messages,
@@ -337,7 +346,7 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
       const result: LlmCompletionResult = {
         content: message?.content ?? "",
         toolCalls,
-        modelName: data.model ?? this.model,
+        modelName: data.model ?? `${this.providerLabel}:${this.model}`,
         usage: {
           promptTokens: data.usage?.prompt_tokens,
           completionTokens: data.usage?.completion_tokens,
@@ -354,7 +363,7 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
         toolName: "llm.complete",
         callType: "llm",
         status: "ok",
-        input: maskPiiDeep({ messages: req.messages }),
+        input: maskPiiDeep({ messages: req.messages, provider: this.providerLabel }),
         output: maskPiiDeep({ content: result.content, toolCalls: result.toolCalls }),
         latencyMs: Date.now() - started,
         promptTokens: result.usage?.promptTokens,
@@ -373,7 +382,7 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
         toolName: "llm.complete",
         callType: "llm",
         status: "error",
-        input: maskPiiDeep({ messages: req.messages }),
+        input: maskPiiDeep({ messages: req.messages, provider: this.providerLabel }),
         errorMessage: err instanceof Error ? err.message : "llm failed",
         latencyMs: Date.now() - started,
         modelName: this.model,
@@ -383,14 +392,58 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
   }
 }
 
-export function createLlmClient(): LlmClient {
-  const enabled = (process.env.LLM_ENABLED ?? "false").toLowerCase() === "true";
-  const apiKey = process.env.LLM_API_KEY;
-  const baseUrl = process.env.LLM_BASE_URL;
-  if (enabled && apiKey && baseUrl) {
-    return new OpenAiCompatibleLlmClient(baseUrl, apiKey);
+/** Prefer live provider; on failure fall back to mock so agents keep working. */
+export class FailoverLlmClient implements LlmClient {
+  constructor(
+    private readonly primary: LlmClient,
+    private readonly fallback: LlmClient,
+  ) {}
+
+  async complete(req: LlmCompletionRequest): Promise<LlmCompletionResult> {
+    try {
+      return await this.primary.complete(req);
+    } catch {
+      const result = await this.fallback.complete(req);
+      return {
+        ...result,
+        modelName: `${result.modelName}+failover`,
+      };
+    }
   }
-  return new MockLlmClient();
+}
+
+export function createLlmClient(): LlmClient {
+  let settingsLlm = null as ReturnType<typeof getSettings>["llm"] | null;
+  try {
+    settingsLlm = getSettings().llm;
+  } catch {
+    settingsLlm = null;
+  }
+
+  const config = resolveLlmConfig(settingsLlm);
+  const mock = new MockLlmClient();
+
+  if (config.provider === "mock" || !config.enabled) {
+    return mock;
+  }
+
+  if (!config.apiKey || !config.baseUrl) {
+    // Grok remains the configured default — mock until XAI_API_KEY / settings key is set
+    return mock;
+  }
+
+  const primary = new OpenAiCompatibleLlmClient(
+    config.baseUrl,
+    config.apiKey,
+    config.model,
+    config.provider,
+  );
+
+  if (config.fallbackToMock) {
+    return new FailoverLlmClient(primary, mock);
+  }
+  return primary;
 }
 
 export { extractJsonObject };
+export { resolveLlmConfig, LLM_PROVIDERS, DEFAULT_LLM_PROVIDER } from "./providers";
