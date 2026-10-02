@@ -1,63 +1,84 @@
 import Link from "next/link";
-
-const primary = [
-  { href: "/chat", label: "Chat", detail: "Qualify, match, book viewings" },
-  { href: "/admin", label: "Admin", detail: "Leads, approvals, flags, health" },
-];
-
-const endpoints = [
-  { href: "/api/health", label: "Health" },
-  { href: "/api/ai/gate", label: "AI gate" },
-  { href: "/api/properties/search?q=marina&city=Dubai", label: "Hybrid search" },
-];
+import { AppShell } from "@/components/AppShell";
 
 export default function HomePage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-10 px-6 py-16">
-      <header className="space-y-4">
-        <p className="text-sm tracking-[0.35em] uppercase text-[color:var(--accent-2)]">PropPilot</p>
-        <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-          Property AI that brokers can trust
-        </h1>
-        <p className="max-w-xl text-base leading-relaxed text-[color:var(--mist)]/80">
-          Qualify buyers, match Dubai inventory, book viewings, and hand off to humans — with kill
-          switch, shadow approvals, and demo mode that runs on Vercel without Postgres.
-        </p>
-      </header>
-
-      <section className="grid gap-3 sm:grid-cols-2">
-        {primary.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="rounded-md border border-[color:var(--accent)]/40 bg-[color:var(--accent)]/15 px-5 py-5 transition hover:bg-[color:var(--accent)]/25"
-          >
-            <span className="text-lg font-semibold text-white">{item.label}</span>
-            <span className="mt-1 block text-sm text-white/65">{item.detail}</span>
-          </Link>
-        ))}
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium tracking-wide text-white/70 uppercase">Diagnostics</h2>
-        <ul className="grid gap-2 sm:grid-cols-3">
-          {endpoints.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className="block rounded-md border border-white/10 bg-white/5 px-4 py-3 text-sm transition hover:border-[color:var(--accent)] hover:bg-white/10"
-              >
-                {item.label}
+    <AppShell bare>
+      <section className="pp-hero">
+        <div className="pp-hero-bg" aria-hidden />
+        <div className="pp-hero-grid" aria-hidden />
+        <div className="pp-hero-inner">
+          <div className="pp-animate-in">
+            <p className="pp-kicker">PropPilot</p>
+            <h1 className="pp-display">Property conversations that close.</h1>
+            <p className="pp-hero-copy">
+              Qualify buyers, match Dubai inventory, and book viewings — with shadow approvals so
+              brokers stay in control.
+            </p>
+            <div className="pp-cta-row">
+              <Link href="/chat" className="pp-btn pp-btn-primary">
+                Start a conversation
               </Link>
-            </li>
-          ))}
-        </ul>
+              <Link href="/admin" className="pp-btn pp-btn-secondary">
+                Open admin
+              </Link>
+            </div>
+          </div>
+
+          <div className="pp-product-stage" aria-label="PropPilot product preview">
+            <div className="pp-chat-preview">
+              <div className="pp-chat-preview-bar">
+                <span>Live assistant</span>
+                <span>Shadow mode on</span>
+              </div>
+              <div className="pp-chat-bubble user">
+                Looking for a 2BR in Dubai Marina under 2.5M AED this month.
+              </div>
+              <div className="pp-chat-bubble assistant">
+                Shortlist ready: Marina Gate Tower 2 — AED 2,450,000. I can book a viewing with
+                Sara or draft a presentation for approval.
+              </div>
+              <div
+                className="pp-chat-bubble assistant"
+                style={{ animationDelay: "420ms", maxWidth: "70%" }}
+              >
+                Want me to schedule tomorrow at 3pm?
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <footer className="text-xs text-white/40">
-        Demo mode activates when DATABASE_URL is unset or DEMO_MODE=true. Set LLM_ENABLED + keys for
-        a live OpenAI-compatible model.
+      <section className="pp-section pp-section-tint">
+        <div className="pp-container">
+          <h2 className="pp-display">Built for brokers, not bots alone</h2>
+          <p className="lead">
+            One calm surface for the moments that matter — intake, match, booking, and human
+            handoff.
+          </p>
+          <div className="pp-feature-row">
+            <article className="pp-feature pp-animate-in">
+              <h3>Qualify with context</h3>
+              <p>Capture budget, timeline, and consent before inventory is shown.</p>
+            </article>
+            <article className="pp-feature pp-animate-in-delay">
+              <h3>Match with facts</h3>
+              <p>Hybrid search blends hard filters with semantic ranking on your listings.</p>
+            </article>
+            <article className="pp-feature pp-animate-in-delay">
+              <h3>Approve before send</h3>
+              <p>Shadow mode queues drafts so nothing leaves without a broker decision.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <footer className="pp-footer">
+        <div className="pp-container" style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+          <span>PropPilot</span>
+          <span>Demo mode · Vercel-ready · Kill switch included</span>
+        </div>
       </footer>
-    </main>
+    </AppShell>
   );
 }

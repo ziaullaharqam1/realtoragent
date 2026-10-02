@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { AppShell } from "@/components/AppShell";
 
 type Conversation = {
   id: string;
@@ -29,40 +30,37 @@ export default function AdminConversationsPage() {
   }, []);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-6 px-6 py-12">
-      <header className="space-y-2">
-        <p className="text-sm tracking-[0.35em] uppercase text-[color:var(--accent-2)]">PropPilot</p>
-        <h1 className="text-3xl font-semibold text-white">Conversations</h1>
-        <Link href="/admin" className="text-sm text-white/50 hover:text-white">
-          ← Admin
-        </Link>
-      </header>
-      {error ? <p className="text-sm text-[color:var(--danger)]">{error}</p> : null}
-      <ul className="space-y-2">
+    <AppShell>
+      <Link href="/admin" className="pp-kicker">
+        ← Admin
+      </Link>
+      <h1 className="pp-display pp-page-title">Conversations</h1>
+      <p className="pp-page-lead">Recent channel threads in the demo store.</p>
+      {error ? <p className="pp-chat-error" style={{ marginTop: "1rem" }}>{error}</p> : null}
+      <div className="pp-panel">
         {items.length === 0 ? (
-          <li className="text-sm text-white/50">No conversations yet — try the chat.</li>
+          <div className="pp-empty" style={{ padding: "3rem 1.5rem" }}>
+            No conversations yet —{" "}
+            <Link href="/chat" style={{ color: "var(--accent)", fontWeight: 600 }}>
+              open chat
+            </Link>
+            .
+          </div>
         ) : (
           items.map((c) => (
-            <li
-              key={c.id}
-              className="rounded-md border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-mono text-xs text-white/50">{c.id.slice(0, 8)}</span>
-                <span className="rounded bg-white/10 px-2 py-0.5 text-xs uppercase">{c.channel}</span>
-              </div>
-              <p className="mt-1">
-                Status <strong className="text-white">{c.status}</strong>
-                {c.leadId ? ` · lead ${c.leadId.slice(0, 8)}` : ""}
-              </p>
-              <p className="text-xs text-white/40">{new Date(c.updatedAt).toLocaleString()}</p>
-            </li>
+            <div key={c.id} className="pp-list-link" style={{ cursor: "default" }}>
+              <strong>
+                {c.channel} · {c.status}
+              </strong>
+              <span>
+                {c.id.slice(0, 8)}
+                {c.leadId ? ` · lead ${c.leadId.slice(0, 8)}` : ""} ·{" "}
+                {new Date(c.updatedAt).toLocaleString()}
+              </span>
+            </div>
           ))
         )}
-      </ul>
-      <Link href="/chat" className="text-sm text-[color:var(--accent)] hover:underline">
-        Open chat →
-      </Link>
-    </main>
+      </div>
+    </AppShell>
   );
 }

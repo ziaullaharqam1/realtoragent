@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { AppShell } from "@/components/AppShell";
 
 type Approval = {
   id: string;
@@ -50,56 +51,56 @@ export default function AdminApprovalsPage() {
     }
   }
 
+  const pending = approvals.filter((a) => a.status === "pending");
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-6 py-12">
-      <header className="space-y-2">
-        <Link href="/admin" className="text-sm text-white/50 hover:text-white">
-          ← Admin
-        </Link>
-        <h1 className="text-3xl font-semibold text-white">Shadow approvals</h1>
-        <p className="text-sm text-white/60">
-          Drafts captured while shadow mode is on. Approve to release to the channel outbox.
-        </p>
-      </header>
-      {error && <p className="text-sm text-[color:var(--danger)]">{error}</p>}
-      <ul className="space-y-3">
-        {approvals.length === 0 && (
-          <li className="text-sm text-white/45">No approvals yet. Enable shadow mode and send a chat message.</li>
-        )}
-        {approvals.map((a) => (
-          <li key={a.id} className="rounded-md border border-white/10 bg-black/20 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-white/45">
-              <span>
-                {a.status} · {a.channel} · {a.draftPayload.agentName ?? "agent"}
+    <AppShell>
+      <Link href="/admin" className="pp-kicker">
+        ← Admin
+      </Link>
+      <h1 className="pp-display pp-page-title">Approvals</h1>
+      <p className="pp-page-lead">
+        Shadow-mode drafts wait here. Approve to send, or reject to keep the thread quiet.
+      </p>
+      {error ? <p className="pp-chat-error" style={{ marginTop: "1rem" }}>{error}</p> : null}
+
+      <div className="pp-panel" style={{ marginTop: "1.75rem" }}>
+        {pending.length === 0 ? (
+          <div className="pp-empty" style={{ padding: "3rem 1.5rem" }}>
+            No pending drafts. Chat in shadow mode to queue one.
+          </div>
+        ) : (
+          pending.map((a) => (
+            <div key={a.id} className="pp-list-link" style={{ cursor: "default" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+                <strong>{a.draftPayload.agentName ?? "Agent"} · {a.channel}</strong>
+                <span className="pp-badge">{a.status}</span>
+              </div>
+              <span style={{ marginTop: "0.65rem", whiteSpace: "pre-wrap", color: "var(--ink-soft)" }}>
+                {a.draftPayload.text ?? "—"}
               </span>
-              <span>{new Date(a.createdAt).toLocaleString()}</span>
-            </div>
-            <p className="mt-3 whitespace-pre-wrap text-sm text-white/85">
-              {a.draftPayload.text ?? JSON.stringify(a.draftPayload)}
-            </p>
-            {a.status === "pending" && (
-              <div className="mt-3 flex gap-2">
+              <div style={{ marginTop: "0.9rem", display: "flex", gap: "0.5rem" }}>
                 <button
                   type="button"
+                  className="pp-btn pp-btn-primary"
                   disabled={busyId === a.id}
                   onClick={() => void decide(a.id, "approved")}
-                  className="rounded-md bg-[color:var(--ok)]/80 px-3 py-1.5 text-xs font-medium text-[#04140f]"
                 >
                   Approve
                 </button>
                 <button
                   type="button"
+                  className="pp-btn pp-btn-danger"
                   disabled={busyId === a.id}
                   onClick={() => void decide(a.id, "rejected")}
-                  className="rounded-md bg-[color:var(--danger)]/80 px-3 py-1.5 text-xs font-medium text-white"
                 >
                   Reject
                 </button>
               </div>
-            )}
-          </li>
-        ))}
-      </ul>
-    </main>
+            </div>
+          ))
+        )}
+      </div>
+    </AppShell>
   );
 }

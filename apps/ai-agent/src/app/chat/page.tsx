@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { AppShell } from "@/components/AppShell";
 
 type ChatMessage = {
   id: string;
@@ -20,6 +21,13 @@ type ChatResponse = {
   reason?: string;
 };
 
+const SUGGESTIONS = [
+  "Looking for a 2BR in Dubai Marina under 2.5M AED",
+  "Book a viewing tomorrow at 3pm",
+  "Build a presentation for the marina listing",
+  "Connect me with a broker",
+];
+
 export default function ChatPage() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -27,6 +35,7 @@ export default function ChatPage() {
   const [busy, setBusy] = useState(false);
   const [meta, setMeta] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const loadConversation = useCallback(async (id: string) => {
     const res = await fetch(`/api/conversations?id=${encodeURIComponent(id)}`);
@@ -39,10 +48,13 @@ export default function ChatPage() {
     if (conversationId) void loadConversation(conversationId);
   }, [conversationId, loadConversation]);
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    const text = input.trim();
-    if (!text || busy) return;
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, busy]);
+
+  async function send(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed || busy) return;
     setBusy(true);
     setError(null);
     setInput("");
@@ -50,7 +62,7 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, conversationId }),
+        body: JSON.stringify({ text: trimmed, conversationId }),
       });
       const data = (await res.json()) as ChatResponse;
       if (!res.ok) {
@@ -59,8 +71,8 @@ export default function ChatPage() {
       setConversationId(data.conversationId);
       setMeta(
         [
-          data.agentName ? `Agent: ${data.agentName}` : null,
-          data.shadowMode ? "Shadow mode (draft stored for approval)" : "Live send",
+          data.agentName ? data.agentName.replace("Agent", "") : null,
+          data.shadowMode ? "Shadow approval queued" : "Live reply",
           data.approvalId ? `Approval ${data.approvalId.slice(0, 8)}` : null,
           !data.allowed ? data.reason : null,
         ]
@@ -75,61 +87,83 @@ export default function ChatPage() {
     }
   }
 
-  return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-6 py-10">
-      <header className="space-y-2">
-        <p className="text-sm tracking-[0.35em] uppercase text-[color:var(--accent-2)]">PropPilot</p>
-        <div className="flex items-end justify-between gap-4">
-          <h1 className="text-3xl font-semibold text-white">Chat</h1>
-          <Link href="/admin" className="text-sm text-white/60 hover:text-white">
-            Admin →
-          </Link>
-        </div>
-        <p className="text-sm text-white/65">
-          Ask about budget, Dubai Marina / JLT listings, viewings, presentations, or broker handoff.
-        </p>
-      </header>
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    await send(input);
+  }
 
-      <section className="flex min-h-[420px] flex-1 flex-col rounded-lg border border-white/10 bg-black/20">
-        <div className="flex-1 space-y-3 overflow-y-auto p-4">
-          {messages.length === 0 && (
-            <p className="text-sm text-white/45">
-              Example: &quot;Looking for a 2BR in Dubai Marina under 2.5M AED, ready this month.&quot;
-            </p>
-          )}
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              className={`max-w-[85%] rounded-md px-3 py-2 text-sm leading-relaxed ${
-                m.role === "user"
-                  ? "ml-auto bg-[color:var(--accent)]/25 text-white"
-                  : "bg-white/8 text-[color:var(--mist)]"
-              }`}
+  return (
+    <AppShell>
+      <div className="pp-animate-in" style={{ marginBottom: "1.25rem" }}>
+        <p className="pp-kicker">PropPilot</p>
+        <h1 className="pp-display pp-page-title">Chat</h1>
+        <p className="pp-page-lead">
+          Ask about budget, Marina or JLT listings, viewings, presentations, or a broker handoff.
+        </p>
+      </div>
+
+      <div className="pp-chat-layout">
+        <aside className="pp-chat-aside">
+          <h2>Try</h2>
+          <div className="pp-chip-list">
+            {SUGGESTIONS.map((s) => (
+              <button key={s} type="button" className="pp-chip" onClick={() => void send(s)} disabled={busy}>
+                {s}
+              </button>
+            ))}
+          </div>
+          <p style={{ marginTop: "1.5rem", fontSize: "0.85rem", color: "var(--muted)" }}>
+            Need oversight?{" "}
+            <Link href="/admin/approvals" style={{ color: "var(--accent)", fontWeight: 600 }}>
+              Review approvals
+            </Link>
+          </p>
+        </aside>
+
+        <section className="pp-chat-main">
+          <div className="pp-chat-messages">
+            {messages.length === 0 && !busy && (
+              <div className="pp-empty">
+                Start with a buyer need — neighborhood, bedrooms, and budget — and PropPilot will
+                route the right agent.
+              </div>
+            )}
+            {messages.map((m) => (
+              <div key={m.id} className={`pp-msg ${m.role === "user" ? "user" : "assistant"}`}>
+                <div className="pp-msg-role">{m.role === "user" ? "You" : "PropPilot"}</div>
+                {m.content}
+              </div>
+            ))}
+            {busy && (
+              <div className="pp-msg assistant" style={{ opacity: 0.7 }}>
+                <div className="pp-msg-role">PropPilot</div>
+                Thinking…
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+          {meta ? <div className="pp-chat-meta">{meta}</div> : null}
+          {error ? <div className="pp-chat-meta pp-chat-error">{error}</div> : null}
+          <form onSubmit={onSubmit} className="pp-chat-composer">
+            <input
+              className="pp-input"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Message PropPilot…"
+              disabled={busy}
+              aria-label="Message"
+            />
+            <button
+              type="submit"
+              className="pp-btn pp-btn-primary"
+              disabled={busy || !input.trim()}
+              style={{ minWidth: "5.5rem" }}
             >
-              <div className="mb-1 text-[10px] uppercase tracking-wide text-white/40">{m.role}</div>
-              <div className="whitespace-pre-wrap">{m.content}</div>
-            </div>
-          ))}
-        </div>
-        {meta && <p className="border-t border-white/10 px-4 py-2 text-xs text-white/45">{meta}</p>}
-        {error && <p className="border-t border-white/10 px-4 py-2 text-xs text-[color:var(--danger)]">{error}</p>}
-        <form onSubmit={onSubmit} className="flex gap-2 border-t border-white/10 p-3">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Message PropPilot…"
-            className="flex-1 rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-[color:var(--accent)]"
-            disabled={busy}
-          />
-          <button
-            type="submit"
-            disabled={busy || !input.trim()}
-            className="rounded-md bg-[color:var(--accent)] px-4 py-2 text-sm font-medium text-[#04140f] disabled:opacity-40"
-          >
-            {busy ? "…" : "Send"}
-          </button>
-        </form>
-      </section>
-    </main>
+              {busy ? "…" : "Send"}
+            </button>
+          </form>
+        </section>
+      </div>
+    </AppShell>
   );
 }

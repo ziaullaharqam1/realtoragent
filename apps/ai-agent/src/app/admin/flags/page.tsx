@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { AppShell } from "@/components/AppShell";
 
 type Flag = {
   id: string;
@@ -55,32 +56,27 @@ export default function AdminFlagsPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-6 py-12">
-      <header className="space-y-2">
-        <Link href="/admin" className="text-sm text-white/50 hover:text-white">
-          ← Admin
-        </Link>
-        <h1 className="text-3xl font-semibold text-white">Feature flags</h1>
-        <p className="text-sm text-white/60">
-          Kill switch, orchestrator, and channel flags. Demo defaults: AI on, kill switch off, shadow off.
-        </p>
-      </header>
-      {error && <p className="text-sm text-[color:var(--danger)]">{error}</p>}
-      <ul className="space-y-3">
+    <AppShell>
+      <Link href="/admin" className="pp-kicker">
+        ← Admin
+      </Link>
+      <h1 className="pp-display pp-page-title">Flags</h1>
+      <p className="pp-page-lead">
+        Kill switch, orchestrator, and channel controls. Shadow mode keeps drafts in approvals.
+      </p>
+      {error ? <p className="pp-chat-error" style={{ marginTop: "1rem" }}>{error}</p> : null}
+      <div className="pp-panel">
         {flags.map((f) => (
-          <li key={f.id} className="rounded-md border border-white/10 bg-black/20 p-4">
-            <div className="font-mono text-sm text-white">{f.flagKey}</div>
-            <p className="mt-1 text-xs text-white/50">{f.description}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
+          <div key={f.id} className="pp-list-link" style={{ cursor: "default" }}>
+            <strong style={{ fontFamily: "var(--font-body)" }}>{f.flagKey}</strong>
+            <span>{f.description}</span>
+            <div style={{ marginTop: "0.85rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
               <button
                 type="button"
                 disabled={busy === f.id}
                 onClick={() => void toggle(f, "isEnabled")}
-                className={`rounded-md px-3 py-1.5 text-xs ${
-                  f.isEnabled
-                    ? "bg-[color:var(--ok)]/80 text-[#04140f]"
-                    : "bg-white/10 text-white/70"
-                }`}
+                className={`pp-btn ${f.isEnabled ? "pp-btn-primary" : "pp-btn-secondary"}`}
+                style={{ padding: "0.45rem 0.8rem", fontSize: "0.8rem" }}
               >
                 Enabled: {f.isEnabled ? "yes" : "no"}
               </button>
@@ -88,18 +84,15 @@ export default function AdminFlagsPage() {
                 type="button"
                 disabled={busy === f.id}
                 onClick={() => void toggle(f, "shadowMode")}
-                className={`rounded-md px-3 py-1.5 text-xs ${
-                  f.shadowMode
-                    ? "bg-[color:var(--accent-2)]/80 text-[#04140f]"
-                    : "bg-white/10 text-white/70"
-                }`}
+                className={`pp-btn ${f.shadowMode ? "pp-btn-secondary" : "pp-btn-ghost"}`}
+                style={{ padding: "0.45rem 0.8rem", fontSize: "0.8rem", border: "1px solid var(--line)" }}
               >
                 Shadow: {f.shadowMode ? "on" : "off"}
               </button>
             </div>
-          </li>
+          </div>
         ))}
-      </ul>
-    </main>
+      </div>
+    </AppShell>
   );
 }

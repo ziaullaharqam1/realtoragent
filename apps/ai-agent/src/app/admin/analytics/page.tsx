@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { AppShell } from "@/components/AppShell";
 
 type Analytics = {
   leads: number;
@@ -33,45 +34,57 @@ export default function AdminAnalyticsPage() {
     })();
   }, []);
 
+  const rows = stats
+    ? ([
+        ["Leads", stats.leads],
+        ["Properties", stats.properties],
+        ["Conversations", stats.conversations],
+        ["Messages", stats.messages],
+        ["Pending approvals", stats.approvalsPending],
+        ["Approved sends", stats.approvalsApproved],
+        ["Presentations", stats.presentations],
+        ["Viewings", stats.viewings],
+        ["Outbox", stats.outbox],
+        ["Tool audits", stats.audits],
+      ] as const)
+    : [];
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-6 px-6 py-12">
-      <header className="space-y-2">
-        <p className="text-sm tracking-[0.35em] uppercase text-[color:var(--accent-2)]">PropPilot</p>
-        <h1 className="text-3xl font-semibold text-white">Analytics</h1>
-        <p className="text-sm text-white/60">Demo counters from the in-memory / local store.</p>
-        <Link href="/admin" className="text-sm text-white/50 hover:text-white">
-          ← Admin
-        </Link>
-      </header>
-      {error ? <p className="text-sm text-[color:var(--danger)]">{error}</p> : null}
-      {stats ? (
-        <dl className="grid gap-3 sm:grid-cols-3">
-          {(
-            [
-              ["Leads", stats.leads],
-              ["Properties", stats.properties],
-              ["Conversations", stats.conversations],
-              ["Messages", stats.messages],
-              ["Pending approvals", stats.approvalsPending],
-              ["Approved sends", stats.approvalsApproved],
-              ["Presentations", stats.presentations],
-              ["Viewings", stats.viewings],
-              ["Outbox items", stats.outbox],
-              ["Tool audits", stats.audits],
-            ] as const
-          ).map(([label, value]) => (
-            <div
-              key={label}
-              className="rounded-md border border-white/10 bg-white/5 px-4 py-4"
-            >
-              <dt className="text-xs uppercase tracking-wide text-white/45">{label}</dt>
-              <dd className="mt-2 text-3xl font-semibold text-white">{value}</dd>
+    <AppShell>
+      <Link href="/admin" className="pp-kicker">
+        ← Admin
+      </Link>
+      <h1 className="pp-display pp-page-title">Analytics</h1>
+      <p className="pp-page-lead">Lightweight counters from the PropPilot store.</p>
+      {error ? <p className="pp-chat-error" style={{ marginTop: "1rem" }}>{error}</p> : null}
+      <div
+        style={{
+          marginTop: "1.75rem",
+          display: "grid",
+          gap: "0.75rem",
+          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+        }}
+      >
+        {rows.map(([label, value]) => (
+          <div
+            key={label}
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--line)",
+              borderRadius: "14px",
+              padding: "1.1rem 1.15rem",
+              boxShadow: "var(--shadow)",
+            }}
+          >
+            <div style={{ fontSize: "0.75rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              {label}
             </div>
-          ))}
-        </dl>
-      ) : (
-        <p className="text-sm text-white/50">Loading…</p>
-      )}
-    </main>
+            <div className="pp-display" style={{ fontSize: "2rem", marginTop: "0.35rem" }}>
+              {value}
+            </div>
+          </div>
+        ))}
+      </div>
+    </AppShell>
   );
 }

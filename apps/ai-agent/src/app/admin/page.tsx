@@ -1,47 +1,34 @@
 import Link from "next/link";
+import { AppShell } from "@/components/AppShell";
 
 const links = [
-  { href: "/admin/leads", label: "Leads", detail: "Demo CRM lead list" },
-  { href: "/admin/approvals", label: "Shadow approvals", detail: "Review drafts before send" },
-  { href: "/admin/flags", label: "Feature flags", detail: "Kill switch, shadow, channels" },
-  { href: "/admin/conversations", label: "Conversations", detail: "Channel threads & status" },
-  { href: "/admin/analytics", label: "Analytics", detail: "Volume counters for the demo store" },
-  { href: "/chat", label: "Live chat", detail: "Qualify · match · book · handoff" },
-  { href: "/api/presentations", label: "Presentations API", detail: "List / create decks" },
-  { href: "/api/health", label: "Health", detail: "DB / Redis / LLM / demo probes" },
-  { href: "/api/properties/search?q=marina&city=Dubai", label: "Property search", detail: "Hybrid search sample" },
-  { href: "/api/n8n/events", label: "n8n events", detail: "Automation event outbox" },
+  { href: "/admin/leads", label: "Leads", detail: "Profiles, scores, and sources" },
+  { href: "/admin/approvals", label: "Approvals", detail: "Shadow drafts waiting for a broker" },
+  { href: "/admin/conversations", label: "Conversations", detail: "Channel threads and status" },
+  { href: "/admin/analytics", label: "Analytics", detail: "Volume across the demo store" },
+  { href: "/admin/flags", label: "Flags", detail: "Kill switch, channels, shadow mode" },
+  { href: "/chat", label: "Live chat", detail: "Talk to the orchestrator" },
 ];
 
 export default function AdminPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-8 px-6 py-12">
-      <header className="space-y-3">
-        <p className="text-sm tracking-[0.35em] uppercase text-[color:var(--accent-2)]">PropPilot</p>
-        <h1 className="text-4xl font-semibold text-white">Admin</h1>
-        <p className="max-w-2xl text-sm leading-relaxed text-white/65">
-          Operations dashboard — leads, shadow approvals, conversations, analytics, flags,
-          presentations, and health. Runs in-memory when Postgres is not configured.
+    <AppShell>
+      <div className="pp-animate-in">
+        <p className="pp-kicker">PropPilot</p>
+        <h1 className="pp-display pp-page-title">Admin</h1>
+        <p className="pp-page-lead">
+          A quiet operations view — leads, approvals, conversations, and controls. Nothing noisy.
         </p>
-        <Link href="/" className="text-sm text-white/50 hover:text-white">
-          ← Home
-        </Link>
-      </header>
+      </div>
 
-      <ul className="grid gap-3 sm:grid-cols-2">
+      <div className="pp-panel pp-animate-in-delay">
         {links.map((item) => (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              className="block rounded-md border border-white/10 bg-white/5 px-4 py-4 transition hover:border-[color:var(--accent)] hover:bg-white/10"
-            >
-              <span className="text-base font-medium text-white">{item.label}</span>
-              <span className="mt-1 block text-sm text-white/55">{item.detail}</span>
-              <span className="mt-2 block font-mono text-xs text-white/35">{item.href}</span>
-            </Link>
-          </li>
+          <Link key={item.href} href={item.href} className="pp-list-link">
+            <strong>{item.label}</strong>
+            <span>{item.detail}</span>
+          </Link>
         ))}
-      </ul>
-    </main>
+      </div>
+    </AppShell>
   );
 }

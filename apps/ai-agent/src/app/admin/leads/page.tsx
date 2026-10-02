@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { AppShell } from "@/components/AppShell";
 
 type Lead = {
   id: string;
@@ -31,41 +32,41 @@ export default function AdminLeadsPage() {
   }, []);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-6 px-6 py-12">
-      <header className="space-y-2">
-        <Link href="/admin" className="text-sm text-white/50 hover:text-white">
-          ← Admin
-        </Link>
-        <h1 className="text-3xl font-semibold text-white">Leads</h1>
-        <p className="text-sm text-white/60">Seeded and webhook-created leads in the PropPilot demo store.</p>
-      </header>
-      {error && <p className="text-sm text-[color:var(--danger)]">{error}</p>}
-      <div className="overflow-x-auto rounded-md border border-white/10">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-white/5 text-xs uppercase tracking-wide text-white/50">
+    <AppShell>
+      <Link href="/admin" className="pp-kicker">
+        ← Admin
+      </Link>
+      <h1 className="pp-display pp-page-title">Leads</h1>
+      <p className="pp-page-lead">Seeded and webhook-created leads in the PropPilot store.</p>
+      {error ? <p className="pp-chat-error" style={{ marginTop: "1rem" }}>{error}</p> : null}
+      <div className="pp-panel" style={{ overflowX: "auto" }}>
+        <table className="pp-table">
+          <thead>
             <tr>
-              <th className="px-3 py-2">Name</th>
-              <th className="px-3 py-2">Source</th>
-              <th className="px-3 py-2">State</th>
-              <th className="px-3 py-2">Score</th>
-              <th className="px-3 py-2">Contact</th>
+              <th>Name</th>
+              <th>Source</th>
+              <th>State</th>
+              <th>Score</th>
+              <th>Contact</th>
             </tr>
           </thead>
           <tbody>
-            {leads.map((l) => (
-              <tr key={l.id} className="border-t border-white/10">
-                <td className="px-3 py-2 text-white">{l.fullName ?? "—"}</td>
-                <td className="px-3 py-2 text-white/70">{l.source}</td>
-                <td className="px-3 py-2 text-white/70">{l.state}</td>
-                <td className="px-3 py-2 text-white/70">{l.score}</td>
-                <td className="px-3 py-2 text-white/55">
-                  {[l.email, l.phone].filter(Boolean).join(" · ") || "—"}
+            {leads.map((lead) => (
+              <tr key={lead.id}>
+                <td>{lead.fullName ?? "—"}</td>
+                <td>
+                  <span className="pp-badge">{lead.source}</span>
+                </td>
+                <td>{lead.state}</td>
+                <td>{lead.score}</td>
+                <td style={{ color: "var(--muted)" }}>
+                  {lead.email ?? lead.phone ?? "—"}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </main>
+    </AppShell>
   );
 }
