@@ -362,7 +362,7 @@ function seedStore(): DemoStore {
         scopeType: "global",
         scopeValue: null,
         isEnabled: true,
-        shadowMode: false,
+        shadowMode: true,
         description: "Master AI orchestrator — enabled for demo",
       },
       {

@@ -4,11 +4,13 @@ const links = [
   { href: "/admin/leads", label: "Leads", detail: "Demo CRM lead list" },
   { href: "/admin/approvals", label: "Shadow approvals", detail: "Review drafts before send" },
   { href: "/admin/flags", label: "Feature flags", detail: "Kill switch, shadow, channels" },
-  { href: "/chat", label: "Conversations (chat)", detail: "Open web chat UI" },
-  { href: "/api/conversations", label: "Conversations API", detail: "JSON conversation list" },
+  { href: "/admin/conversations", label: "Conversations", detail: "Channel threads & status" },
+  { href: "/admin/analytics", label: "Analytics", detail: "Volume counters for the demo store" },
+  { href: "/chat", label: "Live chat", detail: "Qualify · match · book · handoff" },
   { href: "/api/presentations", label: "Presentations API", detail: "List / create decks" },
   { href: "/api/health", label: "Health", detail: "DB / Redis / LLM / demo probes" },
   { href: "/api/properties/search?q=marina&city=Dubai", label: "Property search", detail: "Hybrid search sample" },
+  { href: "/api/n8n/events", label: "n8n events", detail: "Automation event outbox" },
 ];
 
 export default function AdminPage() {
@@ -18,7 +20,7 @@ export default function AdminPage() {
         <p className="text-sm tracking-[0.35em] uppercase text-[color:var(--accent-2)]">PropPilot</p>
         <h1 className="text-4xl font-semibold text-white">Admin</h1>
         <p className="max-w-2xl text-sm leading-relaxed text-white/65">
-          Operations dashboard for the demo slice — leads, shadow approvals, flags, conversations,
+          Operations dashboard — leads, shadow approvals, conversations, analytics, flags,
           presentations, and health. Runs in-memory when Postgres is not configured.
         </p>
         <Link href="/" className="text-sm text-white/50 hover:text-white">

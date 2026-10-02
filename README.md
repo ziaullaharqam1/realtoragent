@@ -40,12 +40,18 @@ npm run dev
 
 | Path | Purpose |
 | --- | --- |
-| `/chat` | Web chat → orchestrator |
-| `/admin` | Leads, shadow approvals, flags, health |
+| `/chat` | Web chat → orchestrator (qualify / match / book / handoff) |
+| `/admin` | Ops hub |
+| `/admin/leads` | Lead list |
+| `/admin/approvals` | Shadow approval queue |
+| `/admin/conversations` | Conversation list |
+| `/admin/analytics` | Demo analytics counters |
+| `/admin/flags` | Kill switch / channel flags |
 | `/presentations/[id]` | Fact-based presentation viewer |
 | `POST /api/chat` | Inbound web message |
 | `GET /api/properties/search` | Hybrid search |
 | `GET /api/health` | Live / ready / LLM probes (demo-aware) |
+| `POST /api/n8n/commands` | n8n command bridge stub |
 
 ## Tests
 
