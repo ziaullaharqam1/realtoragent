@@ -3,12 +3,13 @@ import { createGateways } from "@/lib/ai-agent/gateways";
 import { defaultTenantId } from "@/lib/ai-agent/demo/mode";
 import { getDemoStore, newId } from "@/lib/ai-agent/demo/store";
 import {
+  DECK_STYLES,
   PRESENTATION_THEMES,
   applyThemeToSpec,
   buildComparePresentation,
   getTheme,
 } from "@/lib/ai-agent/presentations/studio";
-import { buildPresentationSpec } from "@/lib/ai-agent/presentations/spec";
+import { buildPresentationSpec, type DeckStyle } from "@/lib/ai-agent/presentations/spec";
 import { getMedia } from "@/lib/ai-agent/presentations/spatial-from-image";
 import { emitN8nEvent } from "@/lib/ai-agent/n8n/bridge";
 import { getSettings } from "@/lib/ai-agent/config/settings";
@@ -16,11 +17,18 @@ import { getSettings } from "@/lib/ai-agent/config/settings";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function parseDeckStyle(raw: unknown): DeckStyle {
+  const value = String(raw ?? "executive");
+  if (value === "lifestyle" || value === "investor" || value === "executive") return value;
+  return "executive";
+}
+
 export async function GET() {
   return NextResponse.json({
     themes: PRESENTATION_THEMES,
+    deckStyles: DECK_STYLES,
     modes: [
-      { id: "standard", label: "Standard deck", detail: "Fact slides from listings" },
+      { id: "standard", label: "Standard deck", detail: "Full advanced dossier from listings" },
       { id: "2d", label: "2D floorplan", detail: "Upload plan → editable 2D rooms" },
       { id: "3d", label: "3D scene", detail: "Upload photo/plan → 3D placeholder scene" },
       { id: "canva", label: "Canva-style canvas", detail: "Slide canvas preview + PPTX export" },
@@ -33,6 +41,7 @@ export async function POST(request: Request) {
   const tenantId = String(body.tenantId ?? defaultTenantId());
   const themeId = body.themeId ? String(body.themeId) : undefined;
   const mode = String(body.mode ?? "standard");
+  const deckStyle = parseDeckStyle(body.deckStyle);
   const sceneId = body.sceneId ? String(body.sceneId) : null;
   const gateways = createGateways();
   const store = getDemoStore();
@@ -65,14 +74,15 @@ export async function POST(request: Request) {
     const theme = getTheme(themeId);
     const baseSpec =
       properties[0] != null
-        ? applyThemeToSpec(buildPresentationSpec(properties[0]), themeId)
+        ? applyThemeToSpec(buildPresentationSpec(properties[0], { deckStyle, themeId }), themeId)
         : {
-            version: 1 as const,
+            version: 2 as const,
             title: scene.title,
             propertyId: "spatial",
             tenantId,
             currency: "AED",
             priceLabel: "Spatial study",
+            deckStyle,
             slides: [] as ReturnType<typeof buildPresentationSpec>["slides"],
             generatedAt: new Date().toISOString(),
             source: "property_gateway" as const,
@@ -80,13 +90,20 @@ export async function POST(request: Request) {
           };
 
     const slides = [
-      ...baseSpec.slides.filter((s) => s.type !== "spatial"),
+      ...baseSpec.slides.filter((s) => s.type !== "spatial" && s.type !== "floorplan"),
+      {
+        type: "floorplan" as const,
+        title: scene.mode === "3d" ? "3D zone map from upload" : "2D floorplan from upload",
+        caption: `${scene.title} · ${scene.rooms.length} zones traced from upload`,
+        rooms: scene.rooms,
+      },
       {
         type: "spatial" as const,
-        title: scene.mode === "3d" ? "3D layout preview" : "2D floorplan",
+        title: scene.mode === "3d" ? "3D layout preview" : "2D spatial preview",
         caption: `${scene.title} · ${scene.rooms.length} zones from upload`,
         layoutHint: scene.mode,
-        renderer: "placeholder-3d" as const,
+        renderer: scene.mode === "3d" ? ("scene-3d" as const) : ("scene-2d" as const),
+        rooms: scene.rooms,
       },
       {
         type: "narrative" as const,
@@ -94,6 +111,13 @@ export async function POST(request: Request) {
         body: media
           ? `Generated from uploaded file “${media.filename}” (${media.purpose}). Room boxes are demo heuristics — wire a vision model for production tracing.`
           : "Source media missing.",
+      },
+      {
+        type: "cta" as const,
+        title: "Share this spatial study",
+        body: "Export the PowerPoint, attach updated photography, or bind a listing for a full dossier.",
+        actions: ["Download PPTX", "Bind a listing", "Book a viewing"],
+        contactHint: "PropPilot Presentation Studio",
       },
     ];
 
@@ -103,9 +127,11 @@ export async function POST(request: Request) {
       slides,
       sceneId: scene.id,
       mode: mode || scene.mode,
+      deckStyle,
       mediaDataUrl: media?.dataUrl ?? null,
       rooms: scene.rooms,
       camera: scene.camera,
+      theme,
     };
 
     presentation = {
@@ -118,9 +144,12 @@ export async function POST(request: Request) {
     };
     store.presentations.push(presentation);
   } else if (properties.length === 1) {
-    const built = applyThemeToSpec(buildPresentationSpec(properties[0]!), themeId);
+    const built = applyThemeToSpec(
+      buildPresentationSpec(properties[0]!, { deckStyle, themeId }),
+      themeId,
+    );
     built.id = id;
-    const spec: Record<string, unknown> = { ...built, mode };
+    const spec: Record<string, unknown> = { ...built, mode, deckStyle };
     presentation = {
       id,
       tenantId,
@@ -131,13 +160,13 @@ export async function POST(request: Request) {
     };
     store.presentations.push(presentation);
   } else if (properties.length > 1) {
-    const compare = buildComparePresentation(properties, themeId);
+    const compare = buildComparePresentation(properties, themeId, deckStyle);
     presentation = {
       id,
       tenantId,
       leadId: body.leadId ? String(body.leadId) : null,
       title: compare.title,
-      spec: { ...compare, id, mode } as unknown as Record<string, unknown>,
+      spec: { ...compare, id, mode, theme: getTheme(themeId) } as unknown as Record<string, unknown>,
       createdAt: new Date().toISOString(),
     };
     store.presentations.push(presentation);
@@ -150,9 +179,9 @@ export async function POST(request: Request) {
     await emitN8nEvent({
       type: "presentation.ready",
       tenantId,
-      payload: { presentationId: presentation.id, mode },
+      payload: { presentationId: presentation.id, mode, deckStyle },
     });
   }
 
-  return NextResponse.json({ presentation, theme: getTheme(themeId) }, { status: 201 });
+  return NextResponse.json({ presentation, theme: getTheme(themeId), deckStyle }, { status: 201 });
 }

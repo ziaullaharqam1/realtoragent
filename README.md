@@ -42,7 +42,7 @@ npm run dev
 | Path | Purpose |
 | --- | --- |
 | `/chat` | Web chat → orchestrator (qualify / match / book / handoff) |
-| `/studio` | Presentation Studio (themes + compare) |
+| `/studio` | Advanced Presentation Studio (dossier styles, themes, compare, PPTX) |
 | `/admin` | Ops hub |
 | `/admin/leads` | Lead list |
 | `/admin/approvals` | Shadow approval queue |
