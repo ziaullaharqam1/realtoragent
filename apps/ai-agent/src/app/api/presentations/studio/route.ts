@@ -28,10 +28,10 @@ export async function GET() {
     themes: PRESENTATION_THEMES,
     deckStyles: DECK_STYLES,
     modes: [
-      { id: "standard", label: "Standard deck", detail: "Full advanced dossier from listings" },
+      { id: "canva", label: "Gamma canvas", detail: "Visual 16:9 Canva/Gamma deck + present mode + PPTX" },
       { id: "2d", label: "2D floorplan", detail: "Upload plan → editable 2D rooms" },
       { id: "3d", label: "3D scene", detail: "Upload photo/plan → 3D placeholder scene" },
-      { id: "canva", label: "Canva-style canvas", detail: "Slide canvas preview + PPTX export" },
+      { id: "standard", label: "Full dossier", detail: "Same visual canvas, executive slide set" },
     ],
   });
 }

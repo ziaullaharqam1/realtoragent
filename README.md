@@ -42,7 +42,7 @@ npm run dev
 | Path | Purpose |
 | --- | --- |
 | `/chat` | Web chat → orchestrator (qualify / match / book / handoff) |
-| `/studio` | Advanced Presentation Studio (dossier styles, themes, compare, PPTX) |
+| `/studio` | Canva / Gamma visual studio (16:9 canvas, present mode, PPTX) |
 | `/admin` | Ops hub |
 | `/admin/leads` | Lead list |
 | `/admin/approvals` | Shadow approval queue |
@@ -57,8 +57,8 @@ npm run dev
 | `/admin/n8n` | n8n command runner |
 | `/admin/access` | Demo RBAC roles |
 | `/admin/runbook` | Pilot staging checklist |
-| `/studio` | Canva-style studio · 2D/3D upload · PPTX |
-| `/presentations/[id]` | Slide canvas + **Download PowerPoint (.pptx)** |
+| `/studio` | Canva / Gamma visual studio · storyboard preview · present mode · PPTX |
+| `/presentations/[id]` | Full-screen visual canvas (not JSON) + **Present** + **Download PowerPoint** |
 | `POST /api/chat` | Inbound web message |
 | `GET /api/properties/search` | Hybrid search |
 | `GET /api/viewings/availability` | Broker viewing calendar slots |
