@@ -2,7 +2,8 @@ import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 
 const links = [
-  { href: "/admin/settings", label: "Configuration", detail: "WhatsApp, Telegram, leads credentials, triggers" },
+  { href: "/admin/settings", label: "Configuration", detail: "WhatsApp, Telegram, leads credentials, triggers, daily digest time" },
+  { href: "/admin/digests", label: "Daily digests", detail: "LLM lead summary at configurable time (default 10 AM)" },
   { href: "/login", label: "Login", detail: "Sign in as admin, broker, or viewer" },
   { href: "/admin/leads", label: "Leads", detail: "Profiles, scores, sources — how intake works" },
   { href: "/admin/approvals", label: "Approvals", detail: "Shadow drafts waiting for a broker" },

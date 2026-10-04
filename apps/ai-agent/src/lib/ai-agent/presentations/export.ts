@@ -17,12 +17,55 @@ export function exportPresentationMarkdown(spec: AnySpec): string {
   for (const slide of slidesOf(spec)) {
     if (slide.type === "cover") {
       lines.push(`## ${slide.title}`, "", slide.subtitle, "", `_${slide.location}_`, "");
+      if (slide.badge) lines.push(`**${slide.badge}**`, "");
+    } else if (slide.type === "metrics") {
+      lines.push(`## ${slide.title}`, "");
+      for (const item of slide.items) {
+        lines.push(`- **${item.label}:** ${item.value}${item.hint ? ` (${item.hint})` : ""}`);
+      }
+      lines.push("");
+    } else if (slide.type === "highlights") {
+      lines.push(`## ${slide.title}`, "");
+      for (const item of slide.items) lines.push(`- **${item.title}** — ${item.detail}`);
+      lines.push("");
     } else if (slide.type === "facts") {
       lines.push(`## ${slide.title}`, "");
       for (const row of slide.rows) lines.push(`- **${row.label}:** ${row.value}`);
       lines.push("");
     } else if (slide.type === "amenities") {
       lines.push(`## ${slide.title}`, "", slide.items.map((i) => `- ${i}`).join("\n"), "");
+    } else if (slide.type === "gallery") {
+      lines.push(`## ${slide.title}`, "", slide.caption, "");
+      for (const frame of slide.frames) lines.push(`- **${frame.label}:** ${frame.note}`);
+      lines.push("");
+    } else if (slide.type === "neighborhood") {
+      lines.push(
+        `## ${slide.title}`,
+        "",
+        `**${slide.district}**, ${slide.city}`,
+        "",
+        slide.body,
+        "",
+        ...slide.points.map((p) => `- ${p}`),
+        "",
+      );
+    } else if (slide.type === "floorplan") {
+      lines.push(
+        `## ${slide.title}`,
+        "",
+        slide.caption,
+        "",
+        ...slide.rooms.map((r) => `- ${r.label}`),
+        "",
+      );
+    } else if (slide.type === "compare_matrix") {
+      lines.push(`## ${slide.title}`, "", `| Attribute | ${slide.columns.join(" | ")} |`, `| --- | ${slide.columns.map(() => "---").join(" | ")} |`);
+      for (const row of slide.rows) {
+        lines.push(`| ${row.label} | ${row.values.join(" | ")} |`);
+      }
+      lines.push("");
+    } else if (slide.type === "cta") {
+      lines.push(`## ${slide.title}`, "", slide.body, "", ...slide.actions.map((a) => `- ${a}`), "", `_${slide.contactHint}_`, "");
     } else if (slide.type === "spatial") {
       lines.push(
         `## ${slide.title}`,
@@ -44,43 +87,66 @@ export function exportPresentationMarkdown(spec: AnySpec): string {
 export function exportPresentationPptxJson(spec: AnySpec): Record<string, unknown> {
   return {
     format: "proppilot.pptx-json",
-    version: 1,
+    version: 2,
     title: titleOf(spec),
     themeId: (spec as { themeId?: string }).themeId ?? "marina",
+    deckStyle: (spec as { deckStyle?: string }).deckStyle ?? "executive",
     slides: slidesOf(spec).map((slide, index) => {
       if (slide.type === "cover") {
         return {
           index,
-          layout: "title",
+          layout: "title_split",
           title: slide.title,
           subtitle: slide.subtitle,
           notes: slide.location,
+          eyebrow: slide.eyebrow,
+          badge: slide.badge,
         };
+      }
+      if (slide.type === "metrics") {
+        return { index, layout: "metric_cards", title: slide.title, items: slide.items };
+      }
+      if (slide.type === "highlights") {
+        return { index, layout: "highlight_grid", title: slide.title, items: slide.items };
       }
       if (slide.type === "facts") {
-        return {
-          index,
-          layout: "two_column_table",
-          title: slide.title,
-          rows: slide.rows,
-        };
+        return { index, layout: "two_column_table", title: slide.title, rows: slide.rows };
       }
       if (slide.type === "amenities") {
+        return { index, layout: "chip_grid", title: slide.title, bullets: slide.items };
+      }
+      if (slide.type === "gallery") {
+        return { index, layout: "gallery_board", title: slide.title, caption: slide.caption, frames: slide.frames };
+      }
+      if (slide.type === "neighborhood") {
         return {
           index,
-          layout: "bullets",
+          layout: "location_split",
           title: slide.title,
-          bullets: slide.items,
+          district: slide.district,
+          city: slide.city,
+          points: slide.points,
+          body: slide.body,
         };
+      }
+      if (slide.type === "floorplan") {
+        return { index, layout: "floorplan_zones", title: slide.title, caption: slide.caption, rooms: slide.rooms };
+      }
+      if (slide.type === "compare_matrix") {
+        return { index, layout: "compare_matrix", title: slide.title, columns: slide.columns, rows: slide.rows };
+      }
+      if (slide.type === "cta") {
+        return { index, layout: "cta", title: slide.title, body: slide.body, actions: slide.actions };
       }
       if (slide.type === "spatial") {
         return {
           index,
-          layout: "spatial_placeholder",
+          layout: "spatial_preview",
           title: slide.title,
           caption: slide.caption,
           layoutHint: slide.layoutHint,
           renderer: slide.renderer,
+          rooms: slide.rooms,
         };
       }
       return {

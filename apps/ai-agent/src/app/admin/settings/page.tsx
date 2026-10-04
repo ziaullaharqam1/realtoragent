@@ -308,6 +308,78 @@ export default function AdminSettingsPage() {
       </section>
 
       <section className="pp-panel" style={{ marginTop: "1rem", padding: "1.25rem" }}>
+        <h2 style={{ margin: "0 0 0.35rem", fontSize: "1.05rem" }}>Daily lead digest schedule</h2>
+        <p style={{ margin: "0 0 1rem", color: "var(--muted)", fontSize: "0.9rem" }}>
+          Runs once per day using the configured LLM and shows pipeline leads. Default{" "}
+          <strong>10:00</strong> Asia/Dubai.{" "}
+          <Link href="/admin/digests" style={{ color: "var(--accent)" }}>
+            View digests
+          </Link>
+        </p>
+        <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))" }}>
+          <Toggle
+            label="Schedule enabled"
+            checked={settings.schedule?.enabled ?? true}
+            onChange={(v) =>
+              setSettings({
+                ...settings,
+                schedule: {
+                  ...(settings.schedule ?? {
+                    enabled: true,
+                    timeLocal: "10:00",
+                    timezone: "Asia/Dubai",
+                    lastRunDateKey: null,
+                  }),
+                  enabled: v,
+                },
+              })
+            }
+          />
+          <Field
+            label="Local time (HH:mm)"
+            value={settings.schedule?.timeLocal ?? "10:00"}
+            onChange={(v) =>
+              setSettings({
+                ...settings,
+                schedule: {
+                  ...(settings.schedule ?? {
+                    enabled: true,
+                    timeLocal: "10:00",
+                    timezone: "Asia/Dubai",
+                    lastRunDateKey: null,
+                  }),
+                  timeLocal: v,
+                },
+              })
+            }
+          />
+          <Field
+            label="Timezone (IANA)"
+            value={settings.schedule?.timezone ?? "Asia/Dubai"}
+            onChange={(v) =>
+              setSettings({
+                ...settings,
+                schedule: {
+                  ...(settings.schedule ?? {
+                    enabled: true,
+                    timeLocal: "10:00",
+                    timezone: "Asia/Dubai",
+                    lastRunDateKey: null,
+                  }),
+                  timezone: v,
+                },
+              })
+            }
+          />
+        </div>
+        <p style={{ margin: "0.85rem 0 0", fontSize: "0.85rem", color: "var(--muted)" }}>
+          Local ticker checks every minute; Vercel Cron hits{" "}
+          <code>/api/cron/daily-leads</code> hourly. Optional <code>CRON_SECRET</code> protects the
+          cron route in production.
+        </p>
+      </section>
+
+      <section className="pp-panel" style={{ marginTop: "1rem", padding: "1.25rem" }}>
         <h2 style={{ margin: "0 0 1rem", fontSize: "1.05rem" }}>Triggers</h2>
         <div style={{ display: "grid", gap: "0.55rem" }}>
           {settings.triggers.map((t, idx) => (

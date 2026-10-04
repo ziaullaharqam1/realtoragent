@@ -77,7 +77,7 @@ describe("M9–M10 export + spatial", () => {
     const spec = buildPresentationSpec(property!);
     expect(spec.slides.some((s) => s.type === "spatial")).toBe(true);
     const md = exportPresentation(spec, "md");
-    expect(md.body).toContain("Layout preview");
+    expect(md.body).toContain("Spatial preview");
     const pptx = exportPresentation(spec, "pptx-json");
     expect(pptx.body).toContain("proppilot.pptx-json");
   });
