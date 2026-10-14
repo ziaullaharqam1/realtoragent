@@ -8,9 +8,10 @@ import {
   CURRENT_USER, 
   PROPERTIES, 
   PIPELINE_LEADS, 
-  PENDING_APPROVALS 
+  PENDING_APPROVALS,
+  BROKERS,
 } from './data/mockData';
-import { Property, ClientBrief, ApprovalDraft, UserPrincipal, ToastNotification } from './types';
+import { Property, ClientBrief, ApprovalDraft, UserPrincipal, ToastNotification, BrokerAccount, BrokerStatus } from './types';
 import { Navbar } from './components/Navbar';
 import { DashboardOverview } from './components/tabs/DashboardOverview';
 import { PropertiesManagementTab } from './components/tabs/PropertiesManagementTab';
@@ -21,14 +22,17 @@ import { ConversationsTab } from './components/tabs/ConversationsTab';
 import { StudioPresentationTab } from './components/tabs/StudioPresentationTab';
 import { NurtureTab } from './components/tabs/NurtureTab';
 import { OperationsSettingsTab } from './components/tabs/OperationsSettingsTab';
+import { BrokersManagementTab } from './components/tabs/BrokersManagementTab';
 import { SalesGuy3DInputModal } from './components/modals/SalesGuy3DInputModal';
 import { PropertyEditModal } from './components/modals/PropertyEditModal';
+import { ProfileEditModal } from './components/modals/ProfileEditModal';
 import { LoginModal } from './components/modals/LoginModal';
 import { ToastContainer } from './components/ui/Toast';
 import { exportPropertyPitchDeck } from './utils/pptxExport';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserPrincipal>(CURRENT_USER);
+  const [brokers, setBrokers] = useState<BrokerAccount[]>(BROKERS);
   const [currentTab, setCurrentTab] = useState<string>('overview');
   const [properties, setProperties] = useState<Property[]>(PROPERTIES);
   const [selectedProperty, setSelectedProperty] = useState<Property>(PROPERTIES[0]);
@@ -37,6 +41,7 @@ export default function App() {
   // Modals state
   const [is3DModalOpen, setIs3DModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPropertyModalOpen, setIsPropertyModalOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
 
@@ -176,6 +181,53 @@ export default function App() {
     });
   };
 
+  const handleSaveProfile = (user: UserPrincipal) => {
+    setCurrentUser(user);
+    setBrokers((prev) =>
+      prev.map((b) =>
+        b.id === user.id
+          ? {
+              ...b,
+              displayName: user.displayName,
+              email: user.email,
+              role: user.role,
+              licenseNumber: user.licenseNumber,
+              phone: user.phone || b.phone,
+              desk: user.desk || b.desk,
+            }
+          : b
+      )
+    );
+    setIsProfileModalOpen(false);
+    showToast({
+      type: 'success',
+      title: 'Profile updated',
+      message: 'Your broker profile details were saved.',
+    });
+  };
+
+  const handleUpsertBroker = (broker: BrokerAccount) => {
+    setBrokers((prev) => {
+      const exists = prev.some((b) => b.id === broker.id);
+      return exists ? prev.map((b) => (b.id === broker.id ? broker : b)) : [broker, ...prev];
+    });
+    if (broker.id === currentUser.id) {
+      setCurrentUser((prev) => ({
+        ...prev,
+        displayName: broker.displayName,
+        email: broker.email,
+        role: broker.role,
+        licenseNumber: broker.licenseNumber,
+        phone: broker.phone,
+        desk: broker.desk,
+      }));
+    }
+  };
+
+  const handleSetBrokerStatus = (brokerId: string, status: BrokerStatus) => {
+    setBrokers((prev) => prev.map((b) => (b.id === brokerId ? { ...b, status } : b)));
+  };
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans">
       
@@ -188,7 +240,7 @@ export default function App() {
         onSelectTab={setCurrentTab}
         currentUser={currentUser}
         onOpen3DModal={() => setIs3DModalOpen(true)}
-        onLogout={() => setIsLoginModalOpen(true)}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
         pendingApprovalsCount={approvals.length}
       />
 
@@ -297,6 +349,16 @@ export default function App() {
           <OperationsSettingsTab />
         )}
 
+        {currentTab === 'brokers' && (
+          <BrokersManagementTab
+            brokers={brokers}
+            currentUserId={currentUser.id}
+            onUpsertBroker={handleUpsertBroker}
+            onSetStatus={handleSetBrokerStatus}
+            onShowToast={showToast}
+          />
+        )}
+
       </main>
 
       {/* Sales Guy 3D Input Modal */}
@@ -317,6 +379,15 @@ export default function App() {
         onClose={() => setIsPropertyModalOpen(false)}
         property={editingProperty}
         onSave={handleSaveProperty}
+      />
+
+      <ProfileEditModal
+        isOpen={isProfileModalOpen}
+        user={currentUser}
+        onClose={() => setIsProfileModalOpen(false)}
+        onSave={handleSaveProfile}
+        onLogout={() => setIsLoginModalOpen(true)}
+        onManageBrokers={() => setCurrentTab('brokers')}
       />
 
       {/* Login Screen Modal for Testing admin@proppilot.demo / proppilot */}

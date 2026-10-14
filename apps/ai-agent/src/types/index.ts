@@ -135,10 +135,36 @@ export interface NurtureSequence {
   active: boolean;
 }
 
+export type BrokerRole =
+  | 'Senior Managing Broker'
+  | 'Admin'
+  | 'Sales Director'
+  | 'Listing Broker'
+  | 'Junior Broker';
+
+export type BrokerStatus = 'active' | 'invited' | 'suspended';
+
 export interface UserPrincipal {
+  id: string;
   email: string;
   displayName: string;
-  role: 'Senior Managing Broker' | 'Admin' | 'Sales Director';
+  role: BrokerRole;
   brokerage: string;
   licenseNumber: string;
+  phone?: string;
+  desk?: string;
+  bio?: string;
+}
+
+export interface BrokerAccount {
+  id: string;
+  displayName: string;
+  email: string;
+  role: BrokerRole;
+  licenseNumber: string;
+  phone: string;
+  desk: string;
+  status: BrokerStatus;
+  activeDeals: number;
+  joinedAt: string;
 }

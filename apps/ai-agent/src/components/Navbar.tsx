@@ -3,12 +3,12 @@ import { UserPrincipal } from '../types';
 import { 
   Compass, 
   Sparkles,
-  LogOut,
   MoreHorizontal,
   MessageSquare,
   Layers,
   Clock,
   Settings,
+  Users,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -16,7 +16,7 @@ interface NavbarProps {
   onSelectTab: (tab: string) => void;
   currentUser: UserPrincipal;
   onOpen3DModal: () => void;
-  onLogout: () => void;
+  onOpenProfile: () => void;
   pendingApprovalsCount: number;
 }
 
@@ -32,6 +32,7 @@ const MORE_TABS = [
   { id: 'conversations', label: 'Chat', icon: MessageSquare },
   { id: 'studio', label: 'Studio', icon: Layers },
   { id: 'nurture', label: 'Nurture', icon: Clock },
+  { id: 'brokers', label: 'Brokers', icon: Users },
   { id: 'ops-settings', label: 'Config', icon: Settings },
 ] as const;
 
@@ -40,12 +41,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectTab,
   currentUser,
   onOpen3DModal,
-  onLogout,
+  onOpenProfile,
   pendingApprovalsCount,
 }) => {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
   const moreActive = MORE_TABS.some((t) => t.id === currentTab);
+  const initials = currentUser.displayName
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
   useEffect(() => {
     if (!moreOpen) return;
@@ -67,7 +74,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-slate-200/90">
       <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 h-16 flex items-center justify-between gap-6">
         
-        {/* Brand */}
         <button
           type="button"
           onClick={() => selectTab('overview')}
@@ -81,7 +87,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
         </button>
 
-        {/* Primary nav — short labels, no icon row */}
         <nav className="hidden md:flex items-center gap-0.5 flex-1 justify-center min-w-0">
           {PRIMARY_TABS.map((tab) => {
             const active = currentTab === tab.id;
@@ -154,7 +159,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </nav>
 
-        {/* Right actions */}
         <div className="flex items-center gap-2.5 shrink-0">
           <button
             type="button"
@@ -165,24 +169,28 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="hidden sm:inline">Present</span>
           </button>
 
-          <div className="hidden lg:block text-right pl-2 border-l border-slate-200">
-            <p className="text-sm font-bold text-slate-900 leading-tight font-display">
-              {currentUser.displayName.split(' ')[0]}
-            </p>
-          </div>
-
+          {/* Name + avatar open profile editor */}
           <button
             type="button"
-            onClick={onLogout}
-            className="w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 inline-flex items-center justify-center transition-colors border border-slate-200"
-            title="Sign out"
+            onClick={onOpenProfile}
+            className="flex items-center gap-2.5 pl-2 border-l border-slate-200 rounded-xl hover:bg-slate-50 pr-1.5 py-1 transition-colors"
+            title="Edit profile"
           >
-            <LogOut className="w-4 h-4" />
+            <div className="hidden sm:block text-right">
+              <p className="text-sm font-bold text-slate-900 leading-tight font-display">
+                {currentUser.displayName.split(' ')[0]}
+              </p>
+              <p className="text-[10px] text-blue-700 font-semibold leading-tight">
+                Profile
+              </p>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 text-white text-xs font-bold inline-flex items-center justify-center shadow-sm border-2 border-white">
+              {initials}
+            </div>
           </button>
         </div>
       </div>
 
-      {/* Mobile / tablet compact bar */}
       <div className="md:hidden flex items-center gap-1 px-4 py-2 overflow-x-auto border-t border-slate-100 bg-white">
         {[...PRIMARY_TABS, ...MORE_TABS.map(({ id, label }) => ({ id, label }))].map((item) => (
           <button

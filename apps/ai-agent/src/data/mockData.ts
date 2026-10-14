@@ -1,12 +1,79 @@
-import { Property, Lead, ApprovalDraft, ConversationThread, NurtureSequence, UserPrincipal } from '../types';
+import { Property, Lead, ApprovalDraft, ConversationThread, NurtureSequence, UserPrincipal, BrokerAccount } from '../types';
 
 export const CURRENT_USER: UserPrincipal = {
+  id: 'broker-marcus',
   email: 'admin@proppilot.demo',
   displayName: 'Marcus Sterling',
   role: 'Senior Managing Broker',
   brokerage: 'PropPilot Private Client Group',
   licenseNumber: 'RERA-ORN-88291',
+  phone: '+971 50 441 2280',
+  desk: 'Palm & Downtown Desk',
+  bio: 'UHNW relocation and trophy-asset specialist covering Palm Jumeirah and Downtown Dubai.',
 };
+
+export const BROKERS: BrokerAccount[] = [
+  {
+    id: 'broker-marcus',
+    displayName: 'Marcus Sterling',
+    email: 'admin@proppilot.demo',
+    role: 'Senior Managing Broker',
+    licenseNumber: 'RERA-ORN-88291',
+    phone: '+971 50 441 2280',
+    desk: 'Palm & Downtown Desk',
+    status: 'active',
+    activeDeals: 4,
+    joinedAt: 'Jan 2022',
+  },
+  {
+    id: 'broker-sara',
+    displayName: 'Sara Al-Hassan',
+    email: 'sara@proppilot.demo',
+    role: 'Listing Broker',
+    licenseNumber: 'RERA-BRN-44102',
+    phone: '+971 55 902 1184',
+    desk: 'Marina & JBR Desk',
+    status: 'active',
+    activeDeals: 6,
+    joinedAt: 'Mar 2023',
+  },
+  {
+    id: 'broker-james',
+    displayName: 'James Okonkwo',
+    email: 'james@proppilot.demo',
+    role: 'Sales Director',
+    licenseNumber: 'RERA-ORN-77114',
+    phone: '+971 52 330 6671',
+    desk: 'Emirates Hills Desk',
+    status: 'active',
+    activeDeals: 3,
+    joinedAt: 'Aug 2021',
+  },
+  {
+    id: 'broker-layla',
+    displayName: 'Layla Farouk',
+    email: 'layla@proppilot.demo',
+    role: 'Junior Broker',
+    licenseNumber: 'RERA-BRN-90331',
+    phone: '+971 58 214 0098',
+    desk: 'Leads Qualification Pod',
+    status: 'invited',
+    activeDeals: 0,
+    joinedAt: 'Oct 2026',
+  },
+  {
+    id: 'broker-omar',
+    displayName: 'Omar Khatib',
+    email: 'omar@proppilot.demo',
+    role: 'Listing Broker',
+    licenseNumber: 'RERA-BRN-55208',
+    phone: '+971 50 778 4412',
+    desk: 'Off-Plan Desk',
+    status: 'suspended',
+    activeDeals: 1,
+    joinedAt: 'Nov 2024',
+  },
+];
 
 export const PROPERTIES: Property[] = [
   {
