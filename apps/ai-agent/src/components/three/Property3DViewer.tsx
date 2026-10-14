@@ -33,6 +33,9 @@ interface Property3DViewerProps {
   onShareLink?: () => void;
 }
 
+type SceneProfile = ReturnType<typeof getSceneProfile>;
+type ViewCoords = { pos: [number, number, number]; lookAt: [number, number, number] };
+
 /** Distinct procedural layout per listing so portfolio selection visibly updates the viewport. */
 function getSceneProfile(property: Property) {
   switch (property.id) {
@@ -45,10 +48,10 @@ function getSceneProfile(property: Property) {
         poolBasin: 0x0f766e,
         water: 0x14b8a6,
         hasPool: false,
+        featureLabel: 'Sky Garden' as const,
         floorW: 16,
         floorD: 14,
         wallH: 6.2,
-        scale: 0.92,
         ceilingM: '3.4m per level · Triplex',
         bg: '#fff7ed',
         skylineHue: 0xd6d3d1,
@@ -62,10 +65,10 @@ function getSceneProfile(property: Property) {
         poolBasin: 0x0369a1,
         water: 0x22d3ee,
         hasPool: true,
+        featureLabel: 'Pool' as const,
         floorW: 18,
         floorD: 12,
         wallH: 4.2,
-        scale: 0.82,
         ceilingM: '3.2m Open Plan',
         bg: '#ecfeff',
         skylineHue: 0xcbd5e1,
@@ -79,10 +82,10 @@ function getSceneProfile(property: Property) {
         poolBasin: 0x166534,
         water: 0x4ade80,
         hasPool: true,
+        featureLabel: 'Pool' as const,
         floorW: 28,
         floorD: 22,
         wallH: 5.2,
-        scale: 1.12,
         ceilingM: '4.8m Grand Foyer',
         bg: '#f7fee7',
         skylineHue: 0xd6d3d1,
@@ -96,15 +99,78 @@ function getSceneProfile(property: Property) {
         poolBasin: 0x0284c7,
         water: 0x06b6d4,
         hasPool: true,
+        featureLabel: 'Pool' as const,
         floorW: 22,
         floorD: 18,
         wallH: 5,
-        scale: 1,
         ceilingM: '7.4m Double Volume',
         bg: '#eef2f6',
         skylineHue: 0xcfd8dc,
       };
   }
+}
+
+/** Room anchors in world units — used for both mesh placement and camera presets. */
+function getLayoutAnchors(profile: SceneProfile) {
+  const { floorW, floorD, wallH } = profile;
+  return {
+    living: { x: floorW * 0.12, y: 0, z: floorD * 0.18 },
+    kitchen: { x: -floorW * 0.28, y: 0, z: -floorD * 0.08 },
+    master: { x: -floorW * 0.22, y: 0, z: -floorD * 0.34 },
+    terrace: { x: floorW * 0.36, y: 0, z: floorD * 0.05 },
+    feature: { x: floorW * 0.34, y: 0, z: 0 },
+    eye: Math.min(2.2, wallH * 0.42),
+    look: Math.min(1.6, wallH * 0.32),
+  };
+}
+
+/** Camera presets matched to the active listing footprint. */
+function getViewCoordinates(profile: SceneProfile): Record<RoomView, ViewCoords> {
+  const a = getLayoutAnchors(profile);
+  const orbit = Math.max(profile.floorW, profile.floorD) * 1.15;
+  const dollhouseY = profile.wallH * 2.4 + 4;
+
+  return {
+    dollhouse: {
+      pos: [orbit * 0.75, dollhouseY, orbit * 0.75],
+      lookAt: [0, profile.wallH * 0.25, 0],
+    },
+    living: {
+      pos: [a.living.x + 3.2, a.eye, a.living.z + 4.2],
+      lookAt: [a.living.x - 0.5, a.look, a.living.z - 1.2],
+    },
+    master: {
+      pos: [a.master.x + 3.5, a.eye + 0.3, a.master.z + 3.2],
+      lookAt: [a.master.x, a.look + 0.4, a.master.z - 1.4],
+    },
+    terrace: {
+      pos: [a.terrace.x + 2.5, a.eye + 0.4, a.terrace.z + 5],
+      lookAt: [a.feature.x, 1.0, a.feature.z],
+    },
+    kitchen: {
+      pos: [a.kitchen.x + 4.2, a.eye, a.kitchen.z + 3.4],
+      lookAt: [a.kitchen.x, a.look, a.kitchen.z - 0.8],
+    },
+    'penthouse-pool': {
+      pos: [a.feature.x + 1.5, a.eye + 1.0, a.feature.z + 5.5],
+      lookAt: [a.feature.x, 0.9, a.feature.z - 1.5],
+    },
+  };
+}
+
+function getAvailableViews(profile: SceneProfile): { id: RoomView; label: string }[] {
+  const views: { id: RoomView; label: string }[] = [
+    { id: 'dollhouse', label: 'Dollhouse' },
+    { id: 'living', label: 'Living' },
+    { id: 'master', label: 'Master' },
+    { id: 'kitchen', label: 'Kitchen' },
+    { id: 'terrace', label: 'Terrace' },
+  ];
+  views.push({
+    id: 'penthouse-pool',
+    label: profile.featureLabel,
+  });
+  return views;
 }
 
 export const Property3DViewer: React.FC<Property3DViewerProps> = ({
@@ -126,15 +192,17 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
   const [isAutoRotate, setIsAutoRotate] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const sceneProfile = getSceneProfile(property);
+  const viewCoordinates = getViewCoordinates(sceneProfile);
+  const availableViews = getAvailableViews(sceneProfile);
 
   // References for Three.js state
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
-  const targetCameraPosRef = useRef<THREE.Vector3>(new THREE.Vector3(18, 14, 18));
-  const targetLookAtRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 1.5, 0));
-  const currentLookAtRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 1.5, 0));
+  const targetCameraPosRef = useRef<THREE.Vector3>(new THREE.Vector3(...viewCoordinates.dollhouse.pos));
+  const targetLookAtRef = useRef<THREE.Vector3>(new THREE.Vector3(...viewCoordinates.dollhouse.lookAt));
+  const currentLookAtRef = useRef<THREE.Vector3>(new THREE.Vector3(...viewCoordinates.dollhouse.lookAt));
   const floorMeshRef = useRef<THREE.Mesh | null>(null);
   const poolWaterRef = useRef<THREE.Mesh | null>(null);
   const sunLightRef = useRef<THREE.DirectionalLight | null>(null);
@@ -142,6 +210,8 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
   const interiorLampsRef = useRef<THREE.PointLight[]>([]);
   const isAutoRotateRef = useRef(isAutoRotate);
   const currentViewRef = useRef(currentView);
+  const viewCoordinatesRef = useRef(viewCoordinates);
+  const orbitRadiusRef = useRef(Math.max(sceneProfile.floorW, sceneProfile.floorD) * 1.15);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -156,6 +226,12 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
     currentViewRef.current = currentView;
   }, [currentView]);
 
+  useEffect(() => {
+    const coords = getViewCoordinates(getSceneProfile(property));
+    viewCoordinatesRef.current = coords;
+    orbitRadiusRef.current = Math.max(getSceneProfile(property).floorW, getSceneProfile(property).floorD) * 1.15;
+  }, [property.id]);
+
   // Reset interactive controls whenever the selected listing changes
   useEffect(() => {
     setCurrentView('dollhouse');
@@ -163,19 +239,16 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
     setFinish('carrara-brass');
     setActiveHotspot(null);
     setIsAutoRotate(true);
+    const home = getViewCoordinates(getSceneProfile(property)).dollhouse;
+    targetCameraPosRef.current.set(...home.pos);
+    targetLookAtRef.current.set(...home.lookAt);
+    currentLookAtRef.current.set(...home.lookAt);
+    if (cameraRef.current) {
+      cameraRef.current.position.set(...home.pos);
+    }
     showToast(`Loaded 3D model · ${property.title}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [property.id]);
-
-  // Preset camera coordinates for cinematic views
-  const viewCoordinates: Record<RoomView, { pos: [number, number, number]; lookAt: [number, number, number] }> = {
-    dollhouse: { pos: [18, 14, 18], lookAt: [0, 1.2, 0] },
-    living: { pos: [4, 2.2, 6], lookAt: [0, 1.6, 0] },
-    master: { pos: [0, 2.6, -2], lookAt: [0, 2.3, -7] },
-    terrace: { pos: [11, 2.5, 4], lookAt: [6, 1.2, -2] },
-    kitchen: { pos: [-2, 2.2, 1], lookAt: [-6, 1.6, -3] },
-    'penthouse-pool': { pos: [8, 3.2, 2], lookAt: [6, 1.0, -4] },
-  };
 
   // Procedural canvas textures
   const createProceduralTextures = () => {
@@ -263,13 +336,17 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
     const width = container.clientWidth;
     const height = container.clientHeight;
     const profile = getSceneProfile(property);
+    const anchors = getLayoutAnchors(profile);
+    const cameraViews = getViewCoordinates(profile);
+    viewCoordinatesRef.current = cameraViews;
+    orbitRadiusRef.current = Math.max(profile.floorW, profile.floorD) * 1.15;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(profile.bg);
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 1000);
-    const initialCoords = viewCoordinates[currentView];
+    const initialCoords = cameraViews.dollhouse;
     camera.position.set(...initialCoords.pos);
     cameraRef.current = camera;
     targetCameraPosRef.current.set(...initialCoords.pos);
@@ -295,7 +372,6 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
     const { marbleTex } = createProceduralTextures();
 
     const buildingGroup = new THREE.Group();
-    buildingGroup.scale.setScalar(profile.scale);
     scene.add(buildingGroup);
 
     const floorW = profile.floorW;
@@ -406,7 +482,7 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
     poolWaterRef.current = null;
     if (profile.hasPool) {
       const poolGroup = new THREE.Group();
-      poolGroup.position.set(floorW * 0.34, 0, 0);
+      poolGroup.position.set(anchors.feature.x, 0, anchors.feature.z);
 
       const poolBasinGeo = new THREE.BoxGeometry(5.5, 1.2, Math.min(11, floorD * 0.7));
       const poolBasinMat = new THREE.MeshStandardMaterial({
@@ -445,14 +521,14 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
         new THREE.BoxGeometry(6, 0.25, 8),
         new THREE.MeshStandardMaterial({ color: 0xd6d3d1, roughness: 0.55, metalness: 0.15 })
       );
-      terraceSlab.position.set(floorW * 0.28, 0.05, 0);
+      terraceSlab.position.set(anchors.feature.x, 0.05, anchors.feature.z);
       terraceSlab.castShadow = true;
       buildingGroup.add(terraceSlab);
     }
 
-    // Designer Modular Furniture
+    // Designer Modular Furniture — anchored to listing footprint
     const sofaGroup = new THREE.Group();
-    sofaGroup.position.set(2.5, 0, 3);
+    sofaGroup.position.set(anchors.living.x, 0, anchors.living.z);
 
     const velvetMat = new THREE.MeshStandardMaterial({
       color: profile.sofa,
@@ -505,7 +581,7 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
 
     // Kitchen Atelier
     const kitchenGroup = new THREE.Group();
-    kitchenGroup.position.set(-6.5, 0, -2);
+    kitchenGroup.position.set(anchors.kitchen.x, 0, anchors.kitchen.z);
 
     const islandGeo = new THREE.BoxGeometry(5.2, 1.0, 1.8);
     const islandMat = new THREE.MeshStandardMaterial({
@@ -534,7 +610,7 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
 
     // Master Suite
     const masterGroup = new THREE.Group();
-    masterGroup.position.set(-6, 0, -6.5);
+    masterGroup.position.set(anchors.master.x, 0, anchors.master.z);
 
     const bedBase = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.4, 3.4), velvetMat);
     bedBase.position.y = 0.2;
@@ -560,7 +636,7 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
     });
     const chandelier = new THREE.Mesh(chandelierGeo, chandelierMat);
     chandelier.rotation.x = Math.PI / 2;
-    chandelier.position.set(2.5, wallH - 0.7, 2.5);
+    chandelier.position.set(anchors.living.x, wallH - 0.7, anchors.living.z);
     buildingGroup.add(chandelier);
 
     // Lighting Rig
@@ -585,15 +661,15 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
     ambientLightRef.current = ambientLight;
 
     const lamp1 = new THREE.PointLight(0xbfdbfe, 1.2, 12, 1.5);
-    lamp1.position.set(2.5, 3.8, 2.5);
+    lamp1.position.set(anchors.living.x, wallH - 1.2, anchors.living.z);
     scene.add(lamp1);
 
     const lamp2 = new THREE.PointLight(0xbfdbfe, 1.0, 10, 1.5);
-    lamp2.position.set(-6.5, 3.8, -2);
+    lamp2.position.set(anchors.kitchen.x, wallH - 1.2, anchors.kitchen.z);
     scene.add(lamp2);
 
     const lamp3 = new THREE.PointLight(0x38bdf8, 1.2, 12, 1.5);
-    lamp3.position.set(7.5, 1.2, 0);
+    lamp3.position.set(anchors.feature.x, 1.2, anchors.feature.z);
     scene.add(lamp3);
     interiorLampsRef.current = [lamp1, lamp2, lamp3];
 
@@ -629,10 +705,10 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
       if (cameraRef.current) {
         if (isAutoRotateRef.current && currentViewRef.current === 'dollhouse') {
           angle += delta * 0.12;
-          const radius = 22 + profile.scale * 4;
+          const radius = orbitRadiusRef.current;
           targetCameraPosRef.current.x = Math.sin(angle) * radius;
           targetCameraPosRef.current.z = Math.cos(angle) * radius;
-          targetCameraPosRef.current.y = 12 + profile.wallH;
+          targetCameraPosRef.current.y = profile.wallH * 2.4 + 4;
         }
 
         cameraRef.current.position.x = THREE.MathUtils.damp(cameraRef.current.position.x, targetCameraPosRef.current.x, 3.5, delta);
@@ -678,13 +754,14 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
   }, [property.id]);
 
   useEffect(() => {
-    const coords = viewCoordinates[currentView];
+    const coords = getViewCoordinates(getSceneProfile(property))[currentView];
     if (coords) {
+      viewCoordinatesRef.current = getViewCoordinates(getSceneProfile(property));
       targetCameraPosRef.current.set(...coords.pos);
       targetLookAtRef.current.set(...coords.lookAt);
       setIsAutoRotate(currentView === 'dollhouse');
     }
-  }, [currentView]);
+  }, [currentView, property.id]);
 
   useEffect(() => {
     if (!sunLightRef.current || !ambientLightRef.current || !sceneRef.current) return;
@@ -880,17 +957,25 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
                 Camera Perspective
               </label>
               <div className="grid grid-cols-3 gap-1">
-                {(['dollhouse', 'living', 'master', 'terrace', 'kitchen', 'penthouse-pool'] as RoomView[]).map((v) => (
+                {availableViews.map((v) => (
                   <button
-                    key={v}
-                    onClick={() => setCurrentView(v)}
+                    key={v.id}
+                    type="button"
+                    onClick={() => {
+                      const coords = getViewCoordinates(sceneProfile)[v.id];
+                      viewCoordinatesRef.current = getViewCoordinates(sceneProfile);
+                      targetCameraPosRef.current.set(...coords.pos);
+                      targetLookAtRef.current.set(...coords.lookAt);
+                      setCurrentView(v.id);
+                      setIsAutoRotate(v.id === 'dollhouse');
+                    }}
                     className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold capitalize transition-all ${
-                      currentView === v
+                      currentView === v.id
                         ? 'bg-blue-600 text-white shadow-xs font-bold'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                   >
-                    {v === 'dollhouse' ? 'Dollhouse' : v === 'penthouse-pool' ? 'Pool' : v}
+                    {v.label}
                   </button>
                 ))}
               </div>
