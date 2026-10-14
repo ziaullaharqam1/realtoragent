@@ -148,8 +148,9 @@ export const Showroom3DTab: React.FC<Showroom3DTabProps> = ({
         </div>
       </div>
 
-      {/* Main 3D Viewport with Three.js */}
+      {/* Main 3D Viewport with Three.js — remount when portfolio selection changes */}
       <Property3DViewer
+        key={selectedProperty.id}
         property={selectedProperty}
         clientName={clientBrief.clientName}
         vipTier={clientBrief.vipTier}

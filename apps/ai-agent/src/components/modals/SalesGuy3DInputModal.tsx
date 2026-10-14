@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Property, ClientBrief, LightingPreset, RoomView, FinishPalette } from '../../types';
 import { PROPERTIES } from '../../data/mockData';
 import { 
@@ -50,6 +50,14 @@ export const SalesGuy3DInputModal: React.FC<SalesGuy3DInputModalProps> = ({
   const [initialLighting, setInitialLighting] = useState<LightingPreset>('golden-hour');
   const [initialFinish, setInitialFinish] = useState<FinishPalette>('carrara-brass');
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Keep modal selection in sync when the showroom portfolio selection changes
+  useEffect(() => {
+    if (isOpen) {
+      setActivePropertyId(selectedProperty.id);
+      setBrief(clientBrief);
+    }
+  }, [isOpen, selectedProperty.id, clientBrief]);
 
   if (!isOpen) return null;
 

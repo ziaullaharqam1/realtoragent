@@ -222,7 +222,7 @@ export const PIPELINE_LEADS: Lead[] = [
   {
     id: 'lead-02',
     name: 'Tariq Al-Mansoor (Family Office)',
-    source: 'WhatsApp',
+    source: 'WhatsApp Direct',
     phone: '+971 50 882 1994',
     budgetAED: 'AED 75M - 90M',
     intentScore: 95,
@@ -237,7 +237,7 @@ export const PIPELINE_LEADS: Lead[] = [
   {
     id: 'lead-03',
     name: 'Christian Lindqvist',
-    source: 'PropertyFinder',
+    source: 'Property Finder',
     phone: '+46 8 123 4567',
     budgetAED: 'AED 20M - 25M',
     intentScore: 91,

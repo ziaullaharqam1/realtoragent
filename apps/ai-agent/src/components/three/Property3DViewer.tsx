@@ -33,6 +33,80 @@ interface Property3DViewerProps {
   onShareLink?: () => void;
 }
 
+/** Distinct procedural layout per listing so portfolio selection visibly updates the viewport. */
+function getSceneProfile(property: Property) {
+  switch (property.id) {
+    case 'prop-downtown-sky':
+      return {
+        accent: 0xb45309,
+        mullion: 0x92400e,
+        pillow: 0xd97706,
+        sofa: 0xf5f5f4,
+        poolBasin: 0x0f766e,
+        water: 0x14b8a6,
+        hasPool: false,
+        floorW: 16,
+        floorD: 14,
+        wallH: 6.2,
+        scale: 0.92,
+        ceilingM: '3.4m per level · Triplex',
+        bg: '#fff7ed',
+        skylineHue: 0xd6d3d1,
+      };
+    case 'prop-marina-waterfront':
+      return {
+        accent: 0x0e7490,
+        mullion: 0x155e75,
+        pillow: 0x06b6d4,
+        sofa: 0xe0f2fe,
+        poolBasin: 0x0369a1,
+        water: 0x22d3ee,
+        hasPool: true,
+        floorW: 18,
+        floorD: 12,
+        wallH: 4.2,
+        scale: 0.82,
+        ceilingM: '3.2m Open Plan',
+        bg: '#ecfeff',
+        skylineHue: 0xcbd5e1,
+      };
+    case 'prop-emirates-hills':
+      return {
+        accent: 0x3f6212,
+        mullion: 0x365314,
+        pillow: 0x65a30d,
+        sofa: 0xfef3c7,
+        poolBasin: 0x166534,
+        water: 0x4ade80,
+        hasPool: true,
+        floorW: 28,
+        floorD: 22,
+        wallH: 5.2,
+        scale: 1.12,
+        ceilingM: '4.8m Grand Foyer',
+        bg: '#f7fee7',
+        skylineHue: 0xd6d3d1,
+      };
+    default:
+      return {
+        accent: 0x1e3a8a,
+        mullion: 0x1e40af,
+        pillow: 0x2563eb,
+        sofa: 0xe2e8f0,
+        poolBasin: 0x0284c7,
+        water: 0x06b6d4,
+        hasPool: true,
+        floorW: 22,
+        floorD: 18,
+        wallH: 5,
+        scale: 1,
+        ceilingM: '7.4m Double Volume',
+        bg: '#eef2f6',
+        skylineHue: 0xcfd8dc,
+      };
+  }
+}
+
 export const Property3DViewer: React.FC<Property3DViewerProps> = ({
   property,
   clientName = 'Distinguished Client',
@@ -51,6 +125,7 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
   const [activeHotspot, setActiveHotspot] = useState<Hotspot | null>(null);
   const [isAutoRotate, setIsAutoRotate] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const sceneProfile = getSceneProfile(property);
 
   // References for Three.js state
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -65,11 +140,32 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
   const sunLightRef = useRef<THREE.DirectionalLight | null>(null);
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
   const interiorLampsRef = useRef<THREE.PointLight[]>([]);
+  const isAutoRotateRef = useRef(isAutoRotate);
+  const currentViewRef = useRef(currentView);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
+
+  useEffect(() => {
+    isAutoRotateRef.current = isAutoRotate;
+  }, [isAutoRotate]);
+
+  useEffect(() => {
+    currentViewRef.current = currentView;
+  }, [currentView]);
+
+  // Reset interactive controls whenever the selected listing changes
+  useEffect(() => {
+    setCurrentView('dollhouse');
+    setLighting('golden-hour');
+    setFinish('carrara-brass');
+    setActiveHotspot(null);
+    setIsAutoRotate(true);
+    showToast(`Loaded 3D model · ${property.title}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [property.id]);
 
   // Preset camera coordinates for cinematic views
   const viewCoordinates: Record<RoomView, { pos: [number, number, number]; lookAt: [number, number, number] }> = {
@@ -166,9 +262,10 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
     const container = mountRef.current;
     const width = container.clientWidth;
     const height = container.clientHeight;
+    const profile = getSceneProfile(property);
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#eef2f6');
+    scene.background = new THREE.Color(profile.bg);
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 1000);
@@ -198,10 +295,16 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
     const { marbleTex } = createProceduralTextures();
 
     const buildingGroup = new THREE.Group();
+    buildingGroup.scale.setScalar(profile.scale);
     scene.add(buildingGroup);
 
-    // Main Penthouse Floor Slab
-    const floorGeo = new THREE.BoxGeometry(22, 0.4, 18);
+    const floorW = profile.floorW;
+    const floorD = profile.floorD;
+    const wallH = profile.wallH;
+    const wallMidY = wallH / 2 - 0.2;
+
+    // Main Floor Slab — sized per listing
+    const floorGeo = new THREE.BoxGeometry(floorW, 0.4, floorD);
     const floorMat = new THREE.MeshStandardMaterial({
       map: marbleTex,
       roughness: 0.15,
@@ -214,7 +317,7 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
     floorMeshRef.current = floorMesh;
 
     // Soft Contact Ground Shadow
-    const shadowGeo = new THREE.PlaneGeometry(36, 32);
+    const shadowGeo = new THREE.PlaneGeometry(floorW + 14, floorD + 14);
     const shadowMat = new THREE.MeshBasicMaterial({
       color: 0x94a3b8,
       transparent: true,
@@ -227,14 +330,14 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
     buildingGroup.add(shadowMesh);
 
     // Ceiling / Upper Slab
-    const ceilingGeo = new THREE.BoxGeometry(22, 0.35, 18);
+    const ceilingGeo = new THREE.BoxGeometry(floorW, 0.35, floorD);
     const ceilingMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       roughness: 0.3,
       metalness: 0.1,
     });
     const ceilingMesh = new THREE.Mesh(ceilingGeo, ceilingMat);
-    ceilingMesh.position.y = 4.8;
+    ceilingMesh.position.y = wallH - 0.2;
     buildingGroup.add(ceilingMesh);
 
     // Interior Feature Walls
@@ -244,25 +347,25 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
       metalness: 0.1,
     });
     const accentWallMat = new THREE.MeshStandardMaterial({
-      color: 0x1e3a8a, // Royal Blue feature accent
+      color: profile.accent,
       roughness: 0.25,
       metalness: 0.35,
     });
 
-    const backWall = new THREE.Mesh(new THREE.BoxGeometry(22, 5, 0.4), wallMat);
-    backWall.position.set(0, 2.3, -9);
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(floorW, wallH, 0.4), wallMat);
+    backWall.position.set(0, wallMidY, -floorD / 2);
     backWall.castShadow = true;
     backWall.receiveShadow = true;
     buildingGroup.add(backWall);
 
-    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5, 18), wallMat);
-    leftWall.position.set(-11, 2.3, 0);
+    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.4, wallH, floorD), wallMat);
+    leftWall.position.set(-floorW / 2, wallMidY, 0);
     leftWall.castShadow = true;
     leftWall.receiveShadow = true;
     buildingGroup.add(leftWall);
 
-    const divider = new THREE.Mesh(new THREE.BoxGeometry(0.3, 4.6, 9), accentWallMat);
-    divider.position.set(-1.5, 2.3, -4.5);
+    const divider = new THREE.Mesh(new THREE.BoxGeometry(0.3, wallH - 0.4, floorD * 0.5), accentWallMat);
+    divider.position.set(-1.5, wallMidY, -floorD * 0.25);
     divider.castShadow = true;
     buildingGroup.add(divider);
 
@@ -279,78 +382,90 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
       depthWrite: false,
     });
 
-    const frontGlass = new THREE.Mesh(new THREE.BoxGeometry(22, 4.6, 0.1), glassMat);
-    frontGlass.position.set(0, 2.3, 9);
+    const frontGlass = new THREE.Mesh(new THREE.BoxGeometry(floorW, wallH - 0.4, 0.1), glassMat);
+    frontGlass.position.set(0, wallMidY, floorD / 2);
     buildingGroup.add(frontGlass);
 
-    const terraceGlass = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.4, 18), glassMat);
-    terraceGlass.position.set(11, 0.7, 0);
+    const terraceGlass = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.4, floorD), glassMat);
+    terraceGlass.position.set(floorW / 2, 0.7, 0);
     buildingGroup.add(terraceGlass);
 
-    // Blue Anodized Architectural Mullions
+    // Anodized Architectural Mullions — color per listing
     const mullionMat = new THREE.MeshStandardMaterial({
-      color: 0x1e40af,
+      color: profile.mullion,
       metalness: 0.85,
       roughness: 0.25,
     });
-    for (let x = -10; x <= 10; x += 3.6) {
-      const mullion = new THREE.Mesh(new THREE.BoxGeometry(0.08, 4.8, 0.08), mullionMat);
-      mullion.position.set(x, 2.3, 9);
+    for (let x = -floorW / 2 + 1; x <= floorW / 2 - 1; x += Math.max(2.8, floorW / 6)) {
+      const mullion = new THREE.Mesh(new THREE.BoxGeometry(0.08, wallH - 0.2, 0.08), mullionMat);
+      mullion.position.set(x, wallMidY, floorD / 2);
       buildingGroup.add(mullion);
     }
 
-    // Cantilever Infinity Pool
-    const poolGroup = new THREE.Group();
-    poolGroup.position.set(7.5, 0, 0);
+    // Pool / terrace water feature — omitted for listings without a pool
+    poolWaterRef.current = null;
+    if (profile.hasPool) {
+      const poolGroup = new THREE.Group();
+      poolGroup.position.set(floorW * 0.34, 0, 0);
 
-    const poolBasinGeo = new THREE.BoxGeometry(5.5, 1.2, 11);
-    const poolBasinMat = new THREE.MeshStandardMaterial({
-      color: 0x0284c7,
-      roughness: 0.2,
-      metalness: 0.1,
-    });
-    const poolBasin = new THREE.Mesh(poolBasinGeo, poolBasinMat);
-    poolBasin.position.y = -0.5;
-    poolGroup.add(poolBasin);
+      const poolBasinGeo = new THREE.BoxGeometry(5.5, 1.2, Math.min(11, floorD * 0.7));
+      const poolBasinMat = new THREE.MeshStandardMaterial({
+        color: profile.poolBasin,
+        roughness: 0.2,
+        metalness: 0.1,
+      });
+      const poolBasin = new THREE.Mesh(poolBasinGeo, poolBasinMat);
+      poolBasin.position.y = -0.5;
+      poolGroup.add(poolBasin);
 
-    const poolGlassEdge = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.5, 11), glassMat);
-    poolGlassEdge.position.set(2.8, 0.4, 0);
-    poolGroup.add(poolGlassEdge);
+      const poolGlassEdge = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.5, Math.min(11, floorD * 0.7)), glassMat);
+      poolGlassEdge.position.set(2.8, 0.4, 0);
+      poolGroup.add(poolGlassEdge);
 
-    const waterGeo = new THREE.PlaneGeometry(5.2, 10.6, 24, 24);
-    const waterMat = new THREE.MeshPhysicalMaterial({
-      color: 0x06b6d4,
-      transmission: 0.85,
-      opacity: 0.88,
-      transparent: true,
-      roughness: 0.1,
-      metalness: 0.2,
-      reflectivity: 0.95,
-      depthWrite: false,
-    });
-    const waterMesh = new THREE.Mesh(waterGeo, waterMat);
-    waterMesh.rotation.x = -Math.PI / 2;
-    waterMesh.position.y = 0.12;
-    poolGroup.add(waterMesh);
-    poolWaterRef.current = waterMesh;
-    buildingGroup.add(poolGroup);
+      const waterGeo = new THREE.PlaneGeometry(5.2, Math.min(10.6, floorD * 0.65), 24, 24);
+      const waterMat = new THREE.MeshPhysicalMaterial({
+        color: profile.water,
+        transmission: 0.85,
+        opacity: 0.88,
+        transparent: true,
+        roughness: 0.1,
+        metalness: 0.2,
+        reflectivity: 0.95,
+        depthWrite: false,
+      });
+      const waterMesh = new THREE.Mesh(waterGeo, waterMat);
+      waterMesh.rotation.x = -Math.PI / 2;
+      waterMesh.position.y = 0.12;
+      poolGroup.add(waterMesh);
+      poolWaterRef.current = waterMesh;
+      buildingGroup.add(poolGroup);
+    } else {
+      // Downtown triplex: sky-garden terrace slab instead of pool
+      const terraceSlab = new THREE.Mesh(
+        new THREE.BoxGeometry(6, 0.25, 8),
+        new THREE.MeshStandardMaterial({ color: 0xd6d3d1, roughness: 0.55, metalness: 0.15 })
+      );
+      terraceSlab.position.set(floorW * 0.28, 0.05, 0);
+      terraceSlab.castShadow = true;
+      buildingGroup.add(terraceSlab);
+    }
 
     // Designer Modular Furniture
     const sofaGroup = new THREE.Group();
     sofaGroup.position.set(2.5, 0, 3);
 
     const velvetMat = new THREE.MeshStandardMaterial({
-      color: 0xe2e8f0,
+      color: profile.sofa,
       roughness: 0.8,
       metalness: 0.05,
     });
     const pillowMat = new THREE.MeshStandardMaterial({
-      color: 0x2563eb, // Sapphire pillow accent
+      color: profile.pillow,
       roughness: 0.7,
       metalness: 0.1,
     });
     const chromeMat = new THREE.MeshStandardMaterial({
-      color: 0x93c5fd,
+      color: profile.pillow,
       metalness: 0.95,
       roughness: 0.15,
     });
@@ -437,15 +552,15 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
     // Modern Ring Chandelier
     const chandelierGeo = new THREE.TorusGeometry(1.6, 0.06, 16, 64);
     const chandelierMat = new THREE.MeshStandardMaterial({
-      color: 0x93c5fd,
-      emissive: 0x1d4ed8,
+      color: profile.pillow,
+      emissive: profile.accent,
       emissiveIntensity: 0.6,
       metalness: 0.9,
       roughness: 0.1,
     });
     const chandelier = new THREE.Mesh(chandelierGeo, chandelierMat);
     chandelier.rotation.x = Math.PI / 2;
-    chandelier.position.set(2.5, 4.1, 2.5);
+    chandelier.position.set(2.5, wallH - 0.7, 2.5);
     buildingGroup.add(chandelier);
 
     // Lighting Rig
@@ -482,18 +597,19 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
     scene.add(lamp3);
     interiorLampsRef.current = [lamp1, lamp2, lamp3];
 
-    // Background Skyline
+    // Background Skyline — hue shifts with neighborhood
     const skylineGroup = new THREE.Group();
+    const seed = property.id.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
     for (let i = -18; i <= 18; i += 2.5) {
-      const towerHeight = 12 + Math.abs(Math.sin(i * 1.5)) * 24;
+      const towerHeight = 12 + Math.abs(Math.sin(i * 1.5 + seed * 0.01)) * 24;
       const towerGeo = new THREE.BoxGeometry(1.8, towerHeight, 1.8);
       const towerMat = new THREE.MeshStandardMaterial({
-        color: 0xcfd8dc,
+        color: profile.skylineHue,
         roughness: 0.8,
         metalness: 0.1,
       });
       const tower = new THREE.Mesh(towerGeo, towerMat);
-      tower.position.set(i * 3, towerHeight / 2 - 5, -28 - Math.random() * 8);
+      tower.position.set(i * 3, towerHeight / 2 - 5, -28 - ((seed + i * 7) % 8));
       skylineGroup.add(tower);
     }
     scene.add(skylineGroup);
@@ -511,11 +627,12 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
       }
 
       if (cameraRef.current) {
-        if (isAutoRotate && currentView === 'dollhouse') {
+        if (isAutoRotateRef.current && currentViewRef.current === 'dollhouse') {
           angle += delta * 0.12;
-          const radius = 24;
+          const radius = 22 + profile.scale * 4;
           targetCameraPosRef.current.x = Math.sin(angle) * radius;
           targetCameraPosRef.current.z = Math.cos(angle) * radius;
+          targetCameraPosRef.current.y = 12 + profile.wallH;
         }
 
         cameraRef.current.position.x = THREE.MathUtils.damp(cameraRef.current.position.x, targetCameraPosRef.current.x, 3.5, delta);
@@ -549,8 +666,16 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
       if (animFrameIdRef.current) cancelAnimationFrame(animFrameIdRef.current);
       renderer.dispose();
       scene.clear();
+      floorMeshRef.current = null;
+      poolWaterRef.current = null;
+      sunLightRef.current = null;
+      ambientLightRef.current = null;
+      interiorLampsRef.current = [];
+      rendererRef.current = null;
+      cameraRef.current = null;
+      sceneRef.current = null;
     };
-  }, []);
+  }, [property.id]);
 
   useEffect(() => {
     const coords = viewCoordinates[currentView];
@@ -671,7 +796,7 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
             Laser Telemetry
           </p>
           <p className="text-xs font-bold text-slate-900 mt-0.5">{property.sqft.toLocaleString()} sq.ft / {property.sqm} m²</p>
-          <p className="text-[11px] text-slate-600 font-medium">Ceilings: 7.4m Double Volume</p>
+          <p className="text-[11px] text-slate-600 font-medium">Ceilings: {sceneProfile.ceilingM}</p>
           <p className="text-[11px] text-emerald-700 font-bold">Rental Yield: {property.rentalYield}% net</p>
         </div>
       )}
