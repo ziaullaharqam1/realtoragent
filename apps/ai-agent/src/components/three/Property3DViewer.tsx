@@ -113,47 +113,71 @@ function getSceneProfile(property: Property) {
 /** Room anchors in world units — used for both mesh placement and camera presets. */
 function getLayoutAnchors(profile: SceneProfile) {
   const { floorW, floorD, wallH } = profile;
+  // Keep furniture clearly inside the slab with room for a standing camera
+  const insetX = floorW * 0.22;
+  const insetZ = floorD * 0.22;
   return {
-    living: { x: floorW * 0.12, y: 0, z: floorD * 0.18 },
-    kitchen: { x: -floorW * 0.28, y: 0, z: -floorD * 0.08 },
-    master: { x: -floorW * 0.22, y: 0, z: -floorD * 0.34 },
-    terrace: { x: floorW * 0.36, y: 0, z: floorD * 0.05 },
-    feature: { x: floorW * 0.34, y: 0, z: 0 },
-    eye: Math.min(2.2, wallH * 0.42),
-    look: Math.min(1.6, wallH * 0.32),
+    living: { x: insetX * 0.55, y: 0, z: insetZ },
+    kitchen: { x: -insetX, y: 0, z: -insetZ * 0.15 },
+    master: { x: -insetX * 0.85, y: 0, z: -insetZ * 1.15 },
+    terrace: { x: floorW * 0.5 - 1.8, y: 0, z: insetZ * 0.2 },
+    feature: { x: floorW * 0.5 - 3.2, y: 0, z: 0 },
+    eye: Math.min(1.85, wallH * 0.38),
+    look: Math.min(1.25, wallH * 0.28),
   };
 }
 
-/** Camera presets matched to the active listing footprint. */
+function clampInsideFloor(
+  x: number,
+  z: number,
+  profile: SceneProfile,
+  margin = 1.6
+): [number, number] {
+  const maxX = profile.floorW / 2 - margin;
+  const maxZ = profile.floorD / 2 - margin;
+  return [
+    Math.max(-maxX, Math.min(maxX, x)),
+    Math.max(-maxZ, Math.min(maxZ, z)),
+  ];
+}
+
+/** Camera presets matched to the active listing footprint (camera stays inside rooms). */
 function getViewCoordinates(profile: SceneProfile): Record<RoomView, ViewCoords> {
   const a = getLayoutAnchors(profile);
-  const orbit = Math.max(profile.floorW, profile.floorD) * 1.15;
-  const dollhouseY = profile.wallH * 2.4 + 4;
+  const orbit = Math.max(profile.floorW, profile.floorD) * 1.25;
+  const dollhouseY = profile.wallH * 2.6 + 5;
+
+  const livingCam = clampInsideFloor(a.living.x + 0.4, a.living.z + 3.4, profile);
+  const kitchenCam = clampInsideFloor(a.kitchen.x + 3.4, a.kitchen.z + 2.2, profile);
+  const masterCam = clampInsideFloor(a.master.x + 2.6, a.master.z + 3.0, profile);
+  const terraceCam = clampInsideFloor(a.terrace.x - 0.4, a.terrace.z + 2.8, profile, 1.2);
+  // Pool / sky-garden can sit near the glass edge
+  const featureCam = clampInsideFloor(a.feature.x - 2.2, a.feature.z + 3.8, profile, 1.1);
 
   return {
     dollhouse: {
-      pos: [orbit * 0.75, dollhouseY, orbit * 0.75],
-      lookAt: [0, profile.wallH * 0.25, 0],
+      pos: [orbit * 0.72, dollhouseY, orbit * 0.72],
+      lookAt: [0, profile.wallH * 0.22, 0],
     },
     living: {
-      pos: [a.living.x + 3.2, a.eye, a.living.z + 4.2],
-      lookAt: [a.living.x - 0.5, a.look, a.living.z - 1.2],
+      pos: [livingCam[0], a.eye, livingCam[1]],
+      lookAt: [a.living.x, a.look, a.living.z - 0.4],
     },
     master: {
-      pos: [a.master.x + 3.5, a.eye + 0.3, a.master.z + 3.2],
-      lookAt: [a.master.x, a.look + 0.4, a.master.z - 1.4],
+      pos: [masterCam[0], a.eye, masterCam[1]],
+      lookAt: [a.master.x, a.look + 0.15, a.master.z - 1.1],
     },
     terrace: {
-      pos: [a.terrace.x + 2.5, a.eye + 0.4, a.terrace.z + 5],
-      lookAt: [a.feature.x, 1.0, a.feature.z],
+      pos: [terraceCam[0], a.eye + 0.15, terraceCam[1]],
+      lookAt: [a.feature.x, 0.85, a.feature.z],
     },
     kitchen: {
-      pos: [a.kitchen.x + 4.2, a.eye, a.kitchen.z + 3.4],
-      lookAt: [a.kitchen.x, a.look, a.kitchen.z - 0.8],
+      pos: [kitchenCam[0], a.eye, kitchenCam[1]],
+      lookAt: [a.kitchen.x, a.look, a.kitchen.z - 0.3],
     },
     'penthouse-pool': {
-      pos: [a.feature.x + 1.5, a.eye + 1.0, a.feature.z + 5.5],
-      lookAt: [a.feature.x, 0.9, a.feature.z - 1.5],
+      pos: [featureCam[0], Math.min(a.eye + 1.1, profile.wallH - 1.2), featureCam[1]],
+      lookAt: [a.feature.x, 0.7, a.feature.z],
     },
   };
 }
@@ -211,11 +235,44 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
   const isAutoRotateRef = useRef(isAutoRotate);
   const currentViewRef = useRef(currentView);
   const viewCoordinatesRef = useRef(viewCoordinates);
-  const orbitRadiusRef = useRef(Math.max(sceneProfile.floorW, sceneProfile.floorD) * 1.15);
+  const orbitRadiusRef = useRef(Math.max(sceneProfile.floorW, sceneProfile.floorD) * 1.25);
+  const orbitHeightRef = useRef(sceneProfile.wallH * 2.6 + 5);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  /** Atomically aim the camera — updates refs first so the animation loop cannot race. */
+  const applyCameraView = (view: RoomView, opts?: { snap?: boolean }) => {
+    const profile = getSceneProfile(property);
+    const coordsMap = getViewCoordinates(profile);
+    const coords = coordsMap[view];
+    viewCoordinatesRef.current = coordsMap;
+    orbitRadiusRef.current = Math.max(profile.floorW, profile.floorD) * 1.25;
+    orbitHeightRef.current = profile.wallH * 2.6 + 5;
+
+    // Sync refs BEFORE React state so auto-rotate cannot overwrite the new target
+    currentViewRef.current = view;
+    isAutoRotateRef.current = view === 'dollhouse';
+    targetCameraPosRef.current.set(...coords.pos);
+    targetLookAtRef.current.set(...coords.lookAt);
+
+    if (opts?.snap !== false) {
+      currentLookAtRef.current.set(...coords.lookAt);
+      if (cameraRef.current) {
+        // Jump most of the way so the room is readable immediately
+        cameraRef.current.position.set(
+          THREE.MathUtils.lerp(cameraRef.current.position.x, coords.pos[0], 0.85),
+          THREE.MathUtils.lerp(cameraRef.current.position.y, coords.pos[1], 0.85),
+          THREE.MathUtils.lerp(cameraRef.current.position.z, coords.pos[2], 0.85)
+        );
+        cameraRef.current.lookAt(currentLookAtRef.current);
+      }
+    }
+
+    setCurrentView(view);
+    setIsAutoRotate(view === 'dollhouse');
   };
 
   useEffect(() => {
@@ -226,26 +283,12 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
     currentViewRef.current = currentView;
   }, [currentView]);
 
-  useEffect(() => {
-    const coords = getViewCoordinates(getSceneProfile(property));
-    viewCoordinatesRef.current = coords;
-    orbitRadiusRef.current = Math.max(getSceneProfile(property).floorW, getSceneProfile(property).floorD) * 1.15;
-  }, [property.id]);
-
   // Reset interactive controls whenever the selected listing changes
   useEffect(() => {
-    setCurrentView('dollhouse');
     setLighting('golden-hour');
     setFinish('carrara-brass');
     setActiveHotspot(null);
-    setIsAutoRotate(true);
-    const home = getViewCoordinates(getSceneProfile(property)).dollhouse;
-    targetCameraPosRef.current.set(...home.pos);
-    targetLookAtRef.current.set(...home.lookAt);
-    currentLookAtRef.current.set(...home.lookAt);
-    if (cameraRef.current) {
-      cameraRef.current.position.set(...home.pos);
-    }
+    applyCameraView('dollhouse', { snap: true });
     showToast(`Loaded 3D model · ${property.title}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [property.id]);
@@ -339,7 +382,8 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
     const anchors = getLayoutAnchors(profile);
     const cameraViews = getViewCoordinates(profile);
     viewCoordinatesRef.current = cameraViews;
-    orbitRadiusRef.current = Math.max(profile.floorW, profile.floorD) * 1.15;
+    orbitRadiusRef.current = Math.max(profile.floorW, profile.floorD) * 1.25;
+    orbitHeightRef.current = profile.wallH * 2.6 + 5;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(profile.bg);
@@ -526,6 +570,38 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
       buildingGroup.add(terraceSlab);
     }
 
+    // Floor room labels so perspective buttons land on a readable space
+    const addRoomLabel = (text: string, x: number, z: number, color = '#1e3a8a') => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d')!;
+      ctx.clearRect(0, 0, 256, 64);
+      ctx.fillStyle = 'rgba(255,255,255,0.88)';
+      ctx.fillRect(8, 10, 240, 44);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(8, 10, 240, 44);
+      ctx.fillStyle = color;
+      ctx.font = 'bold 22px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text.toUpperCase(), 128, 32);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const label = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.8, 0.7),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })
+      );
+      label.rotation.x = -Math.PI / 2;
+      label.position.set(x, 0.03, z + 1.6);
+      buildingGroup.add(label);
+    };
+    addRoomLabel('Living', anchors.living.x, anchors.living.z);
+    addRoomLabel('Kitchen', anchors.kitchen.x, anchors.kitchen.z);
+    addRoomLabel('Master', anchors.master.x, anchors.master.z);
+    addRoomLabel(profile.featureLabel, anchors.feature.x, anchors.feature.z, '#0f766e');
+
     // Designer Modular Furniture — anchored to listing footprint
     const sofaGroup = new THREE.Group();
     sofaGroup.position.set(anchors.living.x, 0, anchors.living.z);
@@ -703,21 +779,24 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
       }
 
       if (cameraRef.current) {
+        // Only orbit in dollhouse — refs are updated synchronously on button click
         if (isAutoRotateRef.current && currentViewRef.current === 'dollhouse') {
           angle += delta * 0.12;
           const radius = orbitRadiusRef.current;
           targetCameraPosRef.current.x = Math.sin(angle) * radius;
           targetCameraPosRef.current.z = Math.cos(angle) * radius;
-          targetCameraPosRef.current.y = profile.wallH * 2.4 + 4;
+          targetCameraPosRef.current.y = orbitHeightRef.current;
+          targetLookAtRef.current.set(0, profile.wallH * 0.22, 0);
         }
 
-        cameraRef.current.position.x = THREE.MathUtils.damp(cameraRef.current.position.x, targetCameraPosRef.current.x, 3.5, delta);
-        cameraRef.current.position.y = THREE.MathUtils.damp(cameraRef.current.position.y, targetCameraPosRef.current.y, 3.5, delta);
-        cameraRef.current.position.z = THREE.MathUtils.damp(cameraRef.current.position.z, targetCameraPosRef.current.z, 3.5, delta);
+        const damp = currentViewRef.current === 'dollhouse' ? 3.2 : 9.5;
+        cameraRef.current.position.x = THREE.MathUtils.damp(cameraRef.current.position.x, targetCameraPosRef.current.x, damp, delta);
+        cameraRef.current.position.y = THREE.MathUtils.damp(cameraRef.current.position.y, targetCameraPosRef.current.y, damp, delta);
+        cameraRef.current.position.z = THREE.MathUtils.damp(cameraRef.current.position.z, targetCameraPosRef.current.z, damp, delta);
 
-        currentLookAtRef.current.x = THREE.MathUtils.damp(currentLookAtRef.current.x, targetLookAtRef.current.x, 3.5, delta);
-        currentLookAtRef.current.y = THREE.MathUtils.damp(currentLookAtRef.current.y, targetLookAtRef.current.y, 3.5, delta);
-        currentLookAtRef.current.z = THREE.MathUtils.damp(currentLookAtRef.current.z, targetLookAtRef.current.z, 3.5, delta);
+        currentLookAtRef.current.x = THREE.MathUtils.damp(currentLookAtRef.current.x, targetLookAtRef.current.x, damp, delta);
+        currentLookAtRef.current.y = THREE.MathUtils.damp(currentLookAtRef.current.y, targetLookAtRef.current.y, damp, delta);
+        currentLookAtRef.current.z = THREE.MathUtils.damp(currentLookAtRef.current.z, targetLookAtRef.current.z, damp, delta);
 
         cameraRef.current.lookAt(currentLookAtRef.current);
       }
@@ -752,16 +831,6 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
       sceneRef.current = null;
     };
   }, [property.id]);
-
-  useEffect(() => {
-    const coords = getViewCoordinates(getSceneProfile(property))[currentView];
-    if (coords) {
-      viewCoordinatesRef.current = getViewCoordinates(getSceneProfile(property));
-      targetCameraPosRef.current.set(...coords.pos);
-      targetLookAtRef.current.set(...coords.lookAt);
-      setIsAutoRotate(currentView === 'dollhouse');
-    }
-  }, [currentView, property.id]);
 
   useEffect(() => {
     if (!sunLightRef.current || !ambientLightRef.current || !sceneRef.current) return;
@@ -865,6 +934,14 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
         </div>
       </div>
 
+      {/* Active camera perspective chip */}
+      <div className="absolute top-20 left-4 z-10 pointer-events-none">
+        <div className="px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md border border-blue-200 shadow-md text-xs font-bold text-blue-900 inline-flex items-center gap-1.5">
+          <Camera className="w-3.5 h-3.5 text-blue-600" />
+          Viewing: {availableViews.find((v) => v.id === currentView)?.label ?? currentView}
+        </div>
+      </div>
+
       {/* Laser Dimensions Overlay */}
       {showMeasurements && (
         <div className="absolute top-20 right-4 pointer-events-none z-10 bg-white/95 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-200 text-right shadow-md">
@@ -961,14 +1038,7 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
                   <button
                     key={v.id}
                     type="button"
-                    onClick={() => {
-                      const coords = getViewCoordinates(sceneProfile)[v.id];
-                      viewCoordinatesRef.current = getViewCoordinates(sceneProfile);
-                      targetCameraPosRef.current.set(...coords.pos);
-                      targetLookAtRef.current.set(...coords.lookAt);
-                      setCurrentView(v.id);
-                      setIsAutoRotate(v.id === 'dollhouse');
-                    }}
+                    onClick={() => applyCameraView(v.id, { snap: true })}
                     className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold capitalize transition-all ${
                       currentView === v.id
                         ? 'bg-blue-600 text-white shadow-xs font-bold'
@@ -1083,11 +1153,18 @@ export const Property3DViewer: React.FC<Property3DViewerProps> = ({
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => {
-                    setIsAutoRotate(!isAutoRotate);
-                    showToast(isAutoRotate ? 'Auto Orbit Paused' : '360° Cinematic Orbit Active');
+                    if (currentViewRef.current !== 'dollhouse') {
+                      applyCameraView('dollhouse', { snap: true });
+                      showToast('360° Cinematic Orbit Active');
+                      return;
+                    }
+                    const next = !isAutoRotateRef.current;
+                    isAutoRotateRef.current = next;
+                    setIsAutoRotate(next);
+                    showToast(next ? '360° Cinematic Orbit Active' : 'Auto Orbit Paused');
                   }}
                   className={`flex-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 ${
-                    isAutoRotate ? 'bg-blue-100 text-blue-900 border border-blue-300 font-bold' : 'bg-slate-100 text-slate-700'
+                    isAutoRotate && currentView === 'dollhouse' ? 'bg-blue-100 text-blue-900 border border-blue-300 font-bold' : 'bg-slate-100 text-slate-700'
                   }`}
                   title="Toggle 360° Slow Orbit"
                 >
