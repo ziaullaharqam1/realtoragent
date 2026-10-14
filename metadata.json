@@ -1,0 +1,6 @@
+{
+  "name": "PropPilot Pro - AI Real Estate Sales Command Center",
+  "description": "The luxury real estate broker portal with AI lead qualification, pgvector semantic inventory matching, shadow approvals, PPTX presentation studio, and immersive 3D client property walkthroughs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

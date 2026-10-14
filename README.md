@@ -1,112 +1,44 @@
-# PropPilot
+# PropPilot Pro — AI Real Estate Sales Command Center
 
-Isolated AI agent service for real-estate workflows. Demo-first slice (M1–M15 foundations)
-runs on Vercel **without** Postgres/Redis/LLM by default.
+Luxury broker portal with AI lead qualification, inventory matching, shadow approvals, PPTX presentation studio, and immersive 3D property walkthroughs.
+
+> **Backup of prior Next.js PropPilot:** git branch `cursor/backup-pre-proppilot-pro-2e6b` and artifact tarball under Cloud Agent backups.
 
 ## Stack
 
 | Layer | Choice |
 | --- | --- |
-| App | Next.js 15 (App Router) + TypeScript — **`apps/ai-agent`** |
-| Deploy | **Vercel** (production). No AWS deploy targets. |
-| Demo | In-memory store when `DEMO_MODE=true` or `DATABASE_URL` unset |
-| LLM | **Grok (xAI)** by default — `LLM_PROVIDER=grok`, set `XAI_API_KEY`; mock failover until key is set. Configurable in `/admin/settings`. |
-| DB | PostgreSQL + pgvector (optional Compose / Neon / Supabase) |
-| Cache | Redis local / Upstash on Vercel (optional in demo) |
-| Object storage | Memory / MinIO local; Vercel Blob later — not AWS S3 |
-| Migrations | Drizzle SQL migrations (`apps/ai-agent/drizzle`) |
+| UI | React 19 + Vite 8 + TypeScript |
+| Styling | Tailwind CSS 4 |
+| 3D | Three.js |
+| Motion | Motion (Framer) |
+| Presentations | pptxgenjs |
+| AI | Google Gemini (`@google/genai`) — set `GEMINI_API_KEY` |
+| Deploy | Vercel (static Vite build → `dist`) |
 
-## Local run (demo — no Docker)
+## Local run
 
 ```bash
-cd apps/ai-agent
-cp .env.example .env.local   # DEMO_MODE=true by default
+cp .env.example .env.local
+# Optional: set GEMINI_API_KEY in .env.local
 npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:13447](http://127.0.0.1:13447) → **Chat** or **Admin**.
+Open [http://127.0.0.1:13448](http://127.0.0.1:13448).
 
-## Local run (with Postgres)
-
-```bash
-docker compose -f deploy/docker-compose.yml up -d postgres redis minio minio-init
-cd apps/ai-agent
-# set DATABASE_URL, DEMO_MODE=false, GATEWAY_MODE=local in .env.local
-npm run db:migrate
-npm run dev
-```
-
-## Product surfaces
-
-| Path | Purpose |
-| --- | --- |
-| `/chat` | Web chat → orchestrator (qualify / match / book / handoff) |
-| `/studio` | Canva / Gamma visual studio (16:9 canvas, present mode, PPTX) |
-| `/admin` | Ops hub |
-| `/admin/leads` | Lead list |
-| `/admin/approvals` | Shadow approval queue |
-| `/admin/conversations` | Takeover / release |
-| `/admin/analytics` | Demo analytics counters |
-| `/admin/flags` | Kill switch / channel flags |
-| `/login` | Demo login (admin / broker / viewer) |
-| `/admin/settings` | WhatsApp, Telegram, lead credentials, triggers, **daily digest time** |
-| `/admin/digests` | Daily LLM lead digest (default **10:00** Asia/Dubai) |
-| `/admin/eval` | Eval harness |
-| `/admin/nurture` | Nurture cadence jobs |
-| `/admin/n8n` | n8n command runner |
-| `/admin/access` | Demo RBAC roles |
-| `/admin/runbook` | Pilot staging checklist |
-| `/studio` | Canva / Gamma visual studio · storyboard preview · present mode · PPTX |
-| `/presentations/[id]` | Full-screen visual canvas (not JSON) + **Present** + **Download PowerPoint** |
-| `POST /api/chat` | Inbound web message |
-| `GET /api/properties/search` | Hybrid search |
-| `GET /api/viewings/availability` | Broker viewing calendar slots |
-| `GET /api/metrics` | Ops counters |
-| `GET /api/health` | Live / ready / LLM probes (demo-aware) |
-| `POST /api/n8n/commands` | n8n command bridge (executes) |
-| `GET /api/cron/daily-leads` | Cron/ticker entry for daily LLM lead digest |
-| `GET/POST /api/admin/digests` | List digests / run now |
-
-### Daily lead digest
-
-A scheduled task runs **once per day** at a configurable local time (default **10:00** `Asia/Dubai`) using the **configured LLM** (Grok by default). It summarizes the lead pipeline and stores a digest at `/admin/digests`.
-
-- Configure time/timezone under **Admin → Configuration → Daily lead digest schedule**
-- Local/dev: in-process minute ticker (starts on `/api/health`, digests, or cron hit)
-- Vercel: hourly cron → `/api/cron/daily-leads` (set optional `CRON_SECRET`)
-- Manual: **Run digest now** on `/admin/digests`
-
-## Tests
+## Build
 
 ```bash
-cd apps/ai-agent
-npm test
 npm run build
+npm run preview
 ```
 
 ## Vercel
 
-1. Root Directory: `apps/ai-agent`
-2. Leave `DATABASE_URL` unset **or** set `DEMO_MODE=true` for zero-infra demo
-3. Optional: Neon/Supabase `DATABASE_URL`, Upstash Redis
-4. LLM: set `XAI_API_KEY` (Grok default) or change provider in Admin → Configuration
-5. No AWS ECS/EKS/Lambda/RDS/S3
+- Framework: Vite
+- Build: `npm run build`
+- Output: `dist`
+- Env (optional): `GEMINI_API_KEY`
 
-## Layout
-
-```text
-apps/ai-agent/src/lib/ai-agent/
-  demo/           In-memory seeded store
-  agents/         Qualification, Matching, Scheduling, Presentation, Handoff, Nurture
-  orchestrator/   processInboundMessage + shadow/outbox
-  llm/            Mock + OpenAI-compatible client (Grok default)
-  schedule/       Daily LLM lead digest + ticker
-  embeddings/     Deterministic mock vectors + refresh
-  search/         Hybrid hard filters + cosine
-  channels/       Web + WhatsApp/Telegram/Email stubs
-  shadow/         Approvals
-  n8n/            Signed webhook bridge stubs
-  presentations/  PresentationSpec builder
-```
-
+Production target: https://realtoragent-seven.vercel.app/
