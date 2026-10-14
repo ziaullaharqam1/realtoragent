@@ -1,18 +1,13 @@
 import React, { useState } from 'react';
 import { ApprovalDraft, Property } from '../../types';
 import { 
-  CheckSquare, 
-  Send, 
   Edit3, 
-  Trash2, 
-  RotateCw, 
   CheckCircle2, 
   Clock, 
-  MessageSquare, 
   Sparkles,
-  ShieldCheck,
   Compass
 } from 'lucide-react';
+import { ChannelAvatar, ChannelBadge } from '../ui/ChannelBadge';
 
 interface ApprovalsTabProps {
   approvals: ApprovalDraft[];
@@ -88,12 +83,11 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
               {/* Top metadata */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-800 font-bold text-xs">
-                    {item.channel}
-                  </div>
+                  <ChannelAvatar channel={item.channel} size="md" />
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900 font-display flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-900 font-display flex flex-wrap items-center gap-2">
                       <span>{item.leadName}</span>
+                      <ChannelBadge channel={item.channel} size="sm" />
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-medium border border-slate-200">
                         {item.propertyContext}
                       </span>
@@ -121,7 +115,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold text-blue-900 flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                    Proposed Message (Ready for WhatsApp / SMS):
+                    Proposed message · ready for {item.channel}
                   </span>
                   <button
                     onClick={() => {
@@ -180,7 +174,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
                     className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all active:scale-95"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Approve & Send Now</span>
+                    <span>Approve & Send via {item.channel}</span>
                   </button>
                 </div>
               </div>

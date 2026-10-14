@@ -15,6 +15,7 @@ import {
   Zap,
   Globe
 } from 'lucide-react';
+import { ChannelBadge } from '../ui/ChannelBadge';
 
 interface DashboardOverviewProps {
   properties: Property[];
@@ -250,9 +251,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <span className="text-sm font-bold text-slate-900 font-display">{appr.leadName}</span>
-                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
-                      {appr.channel}
-                    </span>
+                    <ChannelBadge channel={appr.channel} size="sm" />
                   </div>
                   <span className="text-xs text-slate-500 font-medium shrink-0">{appr.createdAt}</span>
                 </div>
